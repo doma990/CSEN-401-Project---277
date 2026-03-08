@@ -11,9 +11,9 @@ import game.engine.cells.*;
 import game.engine.monsters.*;
 
 public class DataLoader {
-	private static String CARDS_FILE_NAME = "cards.csv";
-	private static String CELLS_FILE_NAME = "cells.csv";
-	private static String MONSTERS_FILE_NAME = "monsters.csv";
+	private final static String CARDS_FILE_NAME = "cards.csv";
+	private final static String CELLS_FILE_NAME = "cells.csv";
+	private final static String MONSTERS_FILE_NAME = "monsters.csv";
 		
 	public static ArrayList<Card> readCards() throws IOException {
 		ArrayList<Card> cards = new ArrayList<Card>();
@@ -76,4 +76,3 @@ public class DataLoader {
 		return monsters;
 	}
 }
-

@@ -1,5 +1,5 @@
 package game.engine.interfaces;
 
 public interface CanisterModifier {
-	public void modifyEnergy();
+	void modifyEnergy(int energy);
 }
