@@ -10,7 +10,7 @@ public class Board {
 	private Cell[][] boardCells;
 	private static ArrayList<Monster> stationedMonsters;
 	private static ArrayList<Card> originalCards;
-	public static ArrayList<Card> cards;
+	private static ArrayList<Card> cards;
 	
 	public Board(ArrayList<Card> readCards) {
 		this.boardCells = new Cell[Constants.BOARD_ROWS][Constants.BOARD_COLS];
@@ -45,3 +45,4 @@ public class Board {
 	
 	
 }
+
