@@ -2,7 +2,7 @@ package game.engine.monsters;
 
 import game.engine.Role;
 
-public abstract class Monster implements Comparable<Monster> {
+abstract public class Monster implements Comparable<Monster> {
 	
 	private String name;
 	private String description;
@@ -19,7 +19,7 @@ public abstract class Monster implements Comparable<Monster> {
 		this.description = description;
 		this.originalRole = originalRole;
 		this.role = originalRole;
-		this.energy = energy;
+		setEnergy(energy);
 		setFrozen(false);
 		setShielded(false);
 		setPosition(0);
@@ -39,8 +39,7 @@ public abstract class Monster implements Comparable<Monster> {
 	}
 	
 	public void setEnergy(int energy) {
-		if (energy >= 0)
-			this.energy = energy;
+		this.energy = (energy >= 0) ? energy : 0;
 	}
 	
 	public int getPosition() {
@@ -50,6 +49,9 @@ public abstract class Monster implements Comparable<Monster> {
 	public void setPosition(int position) {
 		if (position <= 99 && position >= 0)
 			this.position = position;
+		else if (position > 99)
+//			Wrapping positions greater than 99 to their value in the range [0-99]
+			this.position = position - (((int) position / 100) * 100);
 	}
 	
 	public boolean isFrozen() {

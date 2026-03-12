@@ -1,8 +1,10 @@
 package game.engine;
 
 import java.util.ArrayList;
+import java.util.Random;
 import java.io.IOException;
 
+import game.engine.dataloader.DataLoader;
 import game.engine.monsters.Monster;
 
 public class Game {
@@ -16,7 +18,7 @@ public class Game {
 //		Initializing the board
 		board = new Board(game.engine.dataloader.DataLoader.readCards());
 //		Reading monsters.csv and initializing stationed monsters on the board
-		Board.setStationedMonsters(game.engine.dataloader.DataLoader.readMonsters());
+		allMonsters = game.engine.dataloader.DataLoader.readMonsters();
 //		Random selection of monsters for player
 		player = selectRandomMonsterByRole(playerRole);
 //		Random selection of monsters for opponent
@@ -27,13 +29,14 @@ public class Game {
 	}
 	
 	private Monster selectRandomMonsterByRole(Role role) {
-		ArrayList<Monster> temp = Board.getStationedMonsters();
-		Monster result;
-		do {
-			int index = (int) Math.random() * temp.size();
-			result = temp.get(index);
-		} while (result.getRole() != role);
-		return result;
+		ArrayList<Monster> sameRole = new ArrayList<Monster>();
+		for (Monster monster : allMonsters)
+			if (monster.getRole() == role)
+				sameRole.add(monster);
+		if (sameRole.size() == 0)
+			return null;
+		int randomIndex = new Random().nextInt(sameRole.size());
+		return sameRole.get(randomIndex);
 	}
 	
 	public Monster getCurrent() {
@@ -59,6 +62,4 @@ public class Game {
 	public Monster getOpponent() {
 		return opponent;
 	}
-	
-	
 }
