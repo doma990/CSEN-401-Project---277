@@ -1,13 +1,13 @@
 package game.engine.monsters;
 
-import game.engine.Constants;
 import game.engine.Role;
 
-public abstract class Monster implements Comparable<Monster> {
+abstract public class Monster implements Comparable<Monster> {
+	
 	private String name;
 	private String description;
 	private Role role;
-	private Role originalRole; // For confusion card
+	private Role originalRole;
 	private int energy;
 	private int position;
 	private boolean frozen;
@@ -15,24 +15,15 @@ public abstract class Monster implements Comparable<Monster> {
 	private int confusionTurns;
 	
 	public Monster(String name, String description, Role originalRole, int energy) {
-		super();
 		this.name = name;
 		this.description = description;
+		this.originalRole = originalRole;
 		this.role = originalRole;
-		this.originalRole = originalRole; 
-		this.energy = energy;
-		this.position = 0;
-		this.frozen = false;
-		this.shielded = false;
-		this.confusionTurns = 0;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public String getDescription() {
-		return description;
+		setEnergy(energy);
+		setFrozen(false);
+		setShielded(false);
+		setPosition(0);
+		setConfusionTurns(0);
 	}
 	
 	public Role getRole() {
@@ -42,25 +33,25 @@ public abstract class Monster implements Comparable<Monster> {
 	public void setRole(Role role) {
 		this.role = role;
 	}
-
-	public Role getOriginalRole() {
-		return originalRole;
-	}
-
+	
 	public int getEnergy() {
 		return energy;
 	}
-
+	
 	public void setEnergy(int energy) {
-		this.energy = Math.max(Constants.MIN_ENERGY, energy);
+		this.energy = (energy >= 0) ? energy : 0;
 	}
-
+	
 	public int getPosition() {
 		return position;
 	}
-
+	
 	public void setPosition(int position) {
-		this.position = position % Constants.BOARD_SIZE;
+		if (position <= 99 && position >= 0)
+			this.position = position;
+		else if (position > 99)
+//			Wrapping positions greater than 99 to their value in the range [0-99]
+			this.position = position - (((int) position / 100) * 100);
 	}
 	
 	public boolean isFrozen() {
@@ -87,34 +78,19 @@ public abstract class Monster implements Comparable<Monster> {
 		this.confusionTurns = confusionTurns;
 	}
 	
-	abstract void executePowerupEffect(Monster opponentMonster);
-	
-	public boolean isConfused() {
-		return this.getConfusionTurns() > 0;		
+	public String getName() {
+		return name;
 	}
 	
-	public void move(int distance) {	
-		this.position = this.position + distance;
+	public String getDescription() {
+		return description;
 	}
 	
-	public final void alterEnergy(int energy) {
-		if (this.energy < energy && isShielded())
-			setShielded(false);
-		else
-			setEnergy(energy);
+	public Role getOriginalRole() {
+		return originalRole;
 	}
 	
-	public void decrementConfusion() {
-		if (this.getConfusionTurns() > 0) {
-			this.confusionTurns--;
-			if (this.getConfusionTurns() == 0)
-				this.role = this.originalRole;
-		}
+	public int compareTo(Monster o) {
+		return this.position - o.position;
 	}
-
-	@Override
-	public int compareTo(Monster other) {
-		return this.position - other.position;
-	}
-
 }
