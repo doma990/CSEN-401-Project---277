@@ -16,6 +16,7 @@ public abstract class TransportCell extends Cell {
 	
 	public void onLand(Monster landingMonster, Monster opponentMonster) {
 		transport(landingMonster);
+		super.onLand(landingMonster, opponentMonster);
 	}
 	
 	public void transport(Monster monster) {

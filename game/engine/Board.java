@@ -131,22 +131,25 @@ public class Board {
 	}
 	
 	void moveMonster(Monster currentMonster, int roll, Monster opponentMonster) throws InvalidMoveException {
-		int newPosition = currentMonster.getPosition() + roll;
-		if (newPosition > 99)
-			newPosition -= 100;
-		if (newPosition == opponentMonster.getPosition())
-			throw new InvalidMoveException();
-		else {
-			currentMonster.setPosition(newPosition);
-			getCell(newPosition).onLand(currentMonster, opponentMonster);
-			if (currentMonster.isConfused()) {
-				currentMonster.decrementConfusion();
-				opponentMonster.decrementConfusion();				
-			}
-			updateMonsterPositions(currentMonster, opponentMonster);
-		}
+	    int oldPosition = currentMonster.getPosition();
+	    currentMonster.move(roll);
+	    int newPosition = currentMonster.getPosition();
+
+	    if (newPosition == opponentMonster.getPosition()) {
+	        currentMonster.setPosition(oldPosition);
+	        throw new InvalidMoveException();
+	    }
+
+	    getCell(newPosition).onLand(currentMonster, opponentMonster);
+
+	    if (currentMonster.isConfused()) {
+	        currentMonster.decrementConfusion();
+	        opponentMonster.decrementConfusion();
+	    }
+
+	    updateMonsterPositions(currentMonster, opponentMonster);
 	}
-//	Moves Monsters on the board
+	//	Moves Monsters on the board
 	private void updateMonsterPositions(Monster player, Monster opponent) {
 		int[] playerRowCol = indexToRowCol(player.getPosition());
 		int[] opponentRowCol = indexToRowCol(opponent.getPosition());

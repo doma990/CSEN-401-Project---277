@@ -80,17 +80,19 @@ public class Game {
 		if (current.getEnergy() < Constants.POWERUP_COST)
 			throw new OutOfEnergyException();
 		else {
-			current.alterEnergy(current.getEnergy() - Constants.POWERUP_COST);
-			current.executePowerupEffect(current);
+			current.changeEnergyWithNoEffects(-Constants.POWERUP_COST);
+			current.executePowerupEffect(getCurrentOpponent());
 		}
 	}
 
-	void playTurn() throws InvalidMoveException {
-		if (this.getCurrent().isFrozen())
+	public void playTurn() throws InvalidMoveException {
+		if (this.getCurrent().isFrozen()) {
 			this.getCurrent().setFrozen(false);
-		else
-			board.moveMonster(current, rollDice(), getCurrentOpponent());
-		this.switchTurn();
+			this.switchTurn();
+			return;
+		}
+		board.moveMonster(current, rollDice(), getCurrentOpponent());
+		this.switchTurn();		
 	}
 	
 	private void switchTurn() {

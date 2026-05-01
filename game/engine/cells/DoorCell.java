@@ -29,7 +29,8 @@ public class DoorCell extends Cell implements CanisterModifier {
 				modifyCanisterEnergy(landingMonster, this.getEnergy());
 				for (Monster monster : stationed)
 					if (monster.getRole() == landingMonster.getRole())
-						modifyCanisterEnergy(monster, this.getEnergy());						
+						modifyCanisterEnergy(monster, this.getEnergy());	
+				setActivated(true);
 			}
 			else if (!landingMonster.isShielded()) {
 //				TODO : Decrease energy of landing monster and stationed ones of the same role by the cell's energy 				
@@ -37,10 +38,10 @@ public class DoorCell extends Cell implements CanisterModifier {
 				for (Monster monster : stationed)
 					if (monster.getRole() == landingMonster.getRole())
 						modifyCanisterEnergy(monster, -this.getEnergy());
+				setActivated(true);
 			}
 			else
 				landingMonster.setShielded(false);
-			setActivated(true);
 		}
 	}
 
@@ -61,6 +62,7 @@ public class DoorCell extends Cell implements CanisterModifier {
 	}
 
 	public void modifyCanisterEnergy(Monster monster, int canisterValue) {
-		monster.setEnergy(monster.getEnergy() + canisterValue);
+		int change = (monster.getRole() == this.getRole()) ? canisterValue : -canisterValue;
+		monster.alterEnergy(change);
 	}
 }

@@ -105,7 +105,7 @@ public abstract class Monster implements Comparable<Monster> {
 		if (isShielded() && energy < 0){
 			this.setShielded(false);
 		}
-		else
+		else if (energy != 0)
 			 this.setEnergy(energy + this.getEnergy());
 	}
 	
@@ -115,6 +115,10 @@ public abstract class Monster implements Comparable<Monster> {
 			if (this.getConfusionTurns() == 0)
 				this.role = this.originalRole;
 		}
+	}
+	
+	public final void changeEnergyWithNoEffects(int difference) {
+	    this.energy = Math.max(Constants.MIN_ENERGY, this.energy + difference);
 	}
 	
 	public boolean equals (Monster m) {
