@@ -3,7 +3,6 @@ package game.engine;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import org.omg.CORBA.DynAnyPackage.Invalid;
 
 import game.engine.cards.Card;
 import game.engine.cells.*;
@@ -65,42 +64,41 @@ public class Board {
 		boardCells[coordinates[0]][coordinates[1]] = cell;
 	}
 	
-	void initializeBoard(ArrayList<Cell> specialCells) {
+	public void initializeBoard(ArrayList<Cell> specialCells) {
 		int doorIndex = 1, beltIndex = 0, sockIndex = 0, cardIndex = 0, monsterIndex = 0;
 //		Assigning all special cells
 		for (Cell cell : specialCells) {
-			int[] temp = new int[2];
+			int index = 0;
 
 //			Door Cell
 			if (cell instanceof DoorCell) {
-				temp = indexToRowCol(doorIndex);
+				index = doorIndex;
 				doorIndex += 2;
 			}
 			
 //			Conveyor Belt Cell
 			else if (cell instanceof ConveyorBelt)
-				temp = indexToRowCol(Constants.CONVEYOR_CELL_INDICES[beltIndex++]);
+				index = Constants.CONVEYOR_CELL_INDICES[beltIndex++];
 			
 //			Contamination Sock Cell
 			else if (cell instanceof ContaminationSock) 
-				temp = indexToRowCol(Constants.SOCK_CELL_INDICES[sockIndex++]);
+				index = Constants.SOCK_CELL_INDICES[sockIndex++];
 
 //			Card Cell
 			else if (cell instanceof CardCell)
-				temp = indexToRowCol(Constants.CARD_CELL_INDICES[cardIndex++]);
+				index = Constants.CARD_CELL_INDICES[cardIndex++];
 
 //			Monster Cell
-			else if (cell instanceof DoorCell)
-				temp = indexToRowCol(Constants.MONSTER_CELL_INDICES[monsterIndex++]);
+			else if (cell instanceof MonsterCell)
+				index = Constants.MONSTER_CELL_INDICES[monsterIndex++];
 			
-			boardCells[temp[0]][temp[1]] = cell;
+			this.setCell(index, cell);
 		}
 		
 //		Assigning Normal Cells
 		for (int i = 0; i < 100; i += 2) {
-			int[] temp = indexToRowCol(i);
-			if ( !(boardCells[temp[0]][temp[1]] instanceof Cell) )
-				boardCells[temp[0]][temp[1]] = new Cell("NormalCell");
+			if (getCell(i) == null)
+				setCell(i, new Cell("NormalCell"));
 		}
 	}
 	
@@ -113,7 +111,7 @@ public class Board {
 		Board.originalCards = temp;
 	}
 	
-	static void reloadCards() {
+	public static void reloadCards() {
 		ArrayList<Card> temp = new ArrayList<Card>();
 		// Copying
 		for (Card card : originalCards)
@@ -136,18 +134,19 @@ public class Board {
 	
 	void moveMonster(Monster currentMonster, int roll, Monster opponentMonster) throws InvalidMoveException {
 		int newPostion = currentMonster.getPosition() + roll;
-		int rowcol[] = indexToRowCol(newPostion);
 		if (newPostion == opponentMonster.getPosition())
 			throw new InvalidMoveException();
 		else {
 			currentMonster.setPosition(newPostion);
-			boardCells[rowcol[0]][rowcol[1]].onLand(currentMonster, opponentMonster);
-			currentMonster.decrementConfusion();
-			opponentMonster.decrementConfusion();
+			getCell(newPostion).onLand(currentMonster, opponentMonster);
+			if (currentMonster.isConfused()) {
+				currentMonster.decrementConfusion();
+				opponentMonster.decrementConfusion();				
+			}
 			updateMonsterPositions(currentMonster, opponentMonster);
 		}
 	}
-	
+//	Moves Monsters on the board
 	private void updateMonsterPositions(Monster player, Monster opponent) {
 		int[] playerRowCol = indexToRowCol(player.getPosition());
 		int[] opponentRowCol = indexToRowCol(opponent.getPosition());

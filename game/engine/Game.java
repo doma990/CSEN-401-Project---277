@@ -61,7 +61,7 @@ public class Game {
 	private ArrayList<Monster> getRemainingMonsters() {
 		ArrayList<Monster> temp = new ArrayList<Monster>();
 		for (Monster monster : allMonsters)
-			if (this.player != monster && this.opponent != monster)
+			if (!monster.equals(player) && !monster.equals(opponent))
 				temp.add(monster);
 		return temp;
 	}
@@ -87,7 +87,7 @@ public class Game {
 		if (current.getEnergy() < Constants.POWERUP_COST)
 			throw new OutOfEnergyException();
 		else {
-			current.setEnergy(current.getEnergy() - Constants.POWERUP_COST);
+			current.alterEnergy(current.getEnergy() - Constants.POWERUP_COST);
 			current.executePowerupEffect(current);
 		}
 	}
@@ -119,7 +119,7 @@ public class Game {
 				monster.getEnergy() >= Constants.WINNING_ENERGY;
 	}
 	
-	Monster getWinner() {
+	public Monster getWinner() {
 		if(this.checkWinCondition(this.getOpponent()))
 			return this.getOpponent();
 		

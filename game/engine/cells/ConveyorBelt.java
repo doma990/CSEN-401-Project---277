@@ -7,10 +7,4 @@ public class ConveyorBelt extends TransportCell {
 	public ConveyorBelt(String name, int effect) {
 		super(name, effect);
 	}
-	
-	public void onLand(Monster landingMonster, Monster opponentMonster) {
-		super.setMonster(landingMonster);
-		transport(landingMonster);
-	}
-
 }

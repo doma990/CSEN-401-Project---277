@@ -93,15 +93,20 @@ public abstract class Monster implements Comparable<Monster> {
 		return this.getConfusionTurns() > 0;		
 	}
 	
-	public void move(int distance) {	
-		this.position = this.position + distance;
+	public void move(int distance) {
+		int newPosition = this.position + distance;
+		if (newPosition > Constants.WINNING_POSITION) {
+			newPosition -= 100;
+		}
+		this.position= newPosition;
 	}
 	
 	public final void alterEnergy(int energy) {
-		if (this.energy < energy && isShielded())
-			setShielded(false);
+		if (isShielded() && energy < 0){
+			this.setShielded(false);
+		}
 		else
-			setEnergy(energy);
+			 this.setEnergy(energy + this.getEnergy());
 	}
 	
 	public void decrementConfusion() {
@@ -110,6 +115,10 @@ public abstract class Monster implements Comparable<Monster> {
 			if (this.getConfusionTurns() == 0)
 				this.role = this.originalRole;
 		}
+	}
+	
+	public boolean equals (Monster m) {
+		return getName().equals(m.getName());
 	}
 
 	@Override
