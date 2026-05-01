@@ -118,7 +118,7 @@ public abstract class Monster implements Comparable<Monster> {
 	}
 	
 	public boolean equals (Monster m) {
-		return getName().equals(m.getName());
+		return this.getName().equals(m.getName());
 	}
 
 	@Override

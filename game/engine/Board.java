@@ -65,36 +65,34 @@ public class Board {
 	}
 	
 	public void initializeBoard(ArrayList<Cell> specialCells) {
-		int doorIndex = 1, beltIndex = 0, sockIndex = 0, cardIndex = 0, monsterIndex = 0;
-//		Assigning all special cells
+		int doorIndex = 1, beltIndex = 0, sockIndex = 0;
+//		Assigning all Door, Belt, and Sock cells
 		for (Cell cell : specialCells) {
 			int index = 0;
-
 //			Door Cell
 			if (cell instanceof DoorCell) {
 				index = doorIndex;
 				doorIndex += 2;
 			}
-			
 //			Conveyor Belt Cell
 			else if (cell instanceof ConveyorBelt)
 				index = Constants.CONVEYOR_CELL_INDICES[beltIndex++];
-			
 //			Contamination Sock Cell
 			else if (cell instanceof ContaminationSock) 
 				index = Constants.SOCK_CELL_INDICES[sockIndex++];
-
-//			Card Cell
-			else if (cell instanceof CardCell)
-				index = Constants.CARD_CELL_INDICES[cardIndex++];
-
-//			Monster Cell
-			else if (cell instanceof MonsterCell)
-				index = Constants.MONSTER_CELL_INDICES[monsterIndex++];
-			
+//			Setting the cell
 			this.setCell(index, cell);
 		}
-		
+//		Assigning Card Cells
+		for (int index : Constants.CARD_CELL_INDICES)
+			setCell(index, new CardCell("CardCell"));
+//		Assigning Monster Cells
+		for (int i = 0; i < Constants.MONSTER_CELL_INDICES.length; i++) {			
+			int index = Constants.MONSTER_CELL_INDICES[i];
+			Monster monster = stationedMonsters.get(i);
+			monster.setPosition(index);
+			setCell(index, new MonsterCell("MonsterCell", monster));
+		}
 //		Assigning Normal Cells
 		for (int i = 0; i < 100; i += 2) {
 			if (getCell(i) == null)
