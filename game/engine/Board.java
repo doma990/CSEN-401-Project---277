@@ -112,9 +112,7 @@ public class Board {
 	public static void reloadCards() {
 		ArrayList<Card> temp = new ArrayList<Card>();
 		// Copying
-		for (Card card : originalCards)
-			temp.add(card);
-		
+		temp.addAll(getOriginalCards());
 		// Shuffling
 		Collections.shuffle(temp);
 		
