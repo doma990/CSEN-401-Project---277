@@ -60,24 +60,17 @@ public class Game {
 	
 	private ArrayList<Monster> getRemainingMonsters() {
 		ArrayList<Monster> temp = new ArrayList<Monster>();
+		allMonsters.remove(player);
+		allMonsters.remove(opponent);
 		temp.addAll(allMonsters);
-		temp.remove(player);
-		temp.remove(opponent);
 		return temp;
 	}
 	
-//	Adam : I modified it to be == not .equals(player.getName())
 	private Monster getCurrentOpponent() {
-		if (this.current == this.player)
+		if (current.getName().equals(player.getName()))
 			return this.opponent;
 		return this.player;
 	}
-	
-//	private Monster getCurrentOpponent() {
-//		if(current.getName().equals(player.getName()))
-//			return opponent;
-//		return player;
-//	}
 	
 	private int rollDice() {
 		return (int) (Math.random()*6 + 1);
@@ -128,6 +121,19 @@ public class Game {
 		
 		return null;
 	}
+	
+	public static void main(String[] args) throws IOException {
+//		ArrayList<Monster> x = Board.getStationedMonsters();
+		Game x = new Game(Role.SCARER);
+		for (Monster monster : x.getRemainingMonsters())
+			System.out.println(monster.getName());
+		System.out.println(x.player.getName());
+		System.out.println(x.opponent.getName());
+		System.out.println("--");
+		for (Monster y : Board.getStationedMonsters())
+			System.out.println(y.getName());
+	}
+	
 }
 
 

@@ -21,26 +21,22 @@ public class DoorCell extends Cell implements CanisterModifier {
 	}
 	
 	public void onLand(Monster landingMonster, Monster opponentMonster) {
+		super.onLand(landingMonster, opponentMonster);
 		if (!isActivated()) {
 			ArrayList<Monster> stationed = Board.getStationedMonsters();
 			if (landingMonster.getRole() == this.getRole()) {
 //				TODO : Increase energy of landing monster and stationed ones of the same role by the cell's energy 
-				modifyCanisterEnergy(landingMonster, landingMonster.getEnergy() + this.getEnergy());
+				modifyCanisterEnergy(landingMonster, this.getEnergy());
 				for (Monster monster : stationed)
 					if (monster.getRole() == landingMonster.getRole())
-						modifyCanisterEnergy(monster, monster.getEnergy() + this.getEnergy());						
+						modifyCanisterEnergy(monster, this.getEnergy());						
 			}
 			else if (!landingMonster.isShielded()) {
 //				TODO : Decrease energy of landing monster and stationed ones of the same role by the cell's energy 				
-				int energyAfterLoss = 
-						Math.max(Constants.MIN_ENERGY, landingMonster.getEnergy() - this.getEnergy());
-				modifyCanisterEnergy(landingMonster, energyAfterLoss);
+				modifyCanisterEnergy(landingMonster, -this.getEnergy());
 				for (Monster monster : stationed)
-					if (monster.getRole() == landingMonster.getRole()) {
-						energyAfterLoss = 
-								Math.max(Constants.MIN_ENERGY, monster.getEnergy() - this.getEnergy());
-						modifyCanisterEnergy(monster, energyAfterLoss);
-					}
+					if (monster.getRole() == landingMonster.getRole())
+						modifyCanisterEnergy(monster, -this.getEnergy());
 			}
 			else
 				landingMonster.setShielded(false);
@@ -65,6 +61,6 @@ public class DoorCell extends Cell implements CanisterModifier {
 	}
 
 	public void modifyCanisterEnergy(Monster monster, int canisterValue) {
-		monster.setEnergy(canisterValue);
+		monster.setEnergy(monster.getEnergy() + canisterValue);
 	}
 }

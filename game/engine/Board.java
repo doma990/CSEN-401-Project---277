@@ -91,7 +91,7 @@ public class Board {
 			int index = Constants.MONSTER_CELL_INDICES[i];
 			Monster monster = stationedMonsters.get(i);
 			monster.setPosition(index);
-			setCell(index, new MonsterCell("MonsterCell", monster));
+			setCell(index, new MonsterCell(monster.getName(), monster));
 		}
 //		Assigning Normal Cells
 		for (int i = 0; i < 100; i += 2) {
