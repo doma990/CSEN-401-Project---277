@@ -17,9 +17,12 @@ public class ConfusionCard extends Card {
 		if(this.getName().equals("Mind Scramble")) {
 			player.setConfusionTurns(2);
 			opponent.setConfusionTurns(2);
-		} else {
+		} else if (this.getName().equals("Total Confusion")){
 			player.setConfusionTurns(3);
 			opponent.setConfusionTurns(3);
+		} else {			
+			player.setConfusionTurns(1);
+			opponent.setConfusionTurns(1);
 		}
 		
 	}

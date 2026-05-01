@@ -60,9 +60,9 @@ public class Game {
 	
 	private ArrayList<Monster> getRemainingMonsters() {
 		ArrayList<Monster> temp = new ArrayList<Monster>();
-		for (Monster monster : allMonsters)
-			if (!monster.equals(player) && !monster.equals(opponent))
-				temp.add(monster);
+		temp.addAll(allMonsters);
+		temp.remove(player);
+		temp.remove(opponent);
 		return temp;
 	}
 	

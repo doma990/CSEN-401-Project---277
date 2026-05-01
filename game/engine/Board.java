@@ -87,7 +87,7 @@ public class Board {
 		for (int index : Constants.CARD_CELL_INDICES)
 			setCell(index, new CardCell("CardCell"));
 //		Assigning Monster Cells
-		for (int i = 0; i < Constants.MONSTER_CELL_INDICES.length; i++) {			
+		for (int i = 0; i < stationedMonsters.size(); i++) {			
 			int index = Constants.MONSTER_CELL_INDICES[i];
 			Monster monster = stationedMonsters.get(i);
 			monster.setPosition(index);
@@ -131,12 +131,14 @@ public class Board {
 	}
 	
 	void moveMonster(Monster currentMonster, int roll, Monster opponentMonster) throws InvalidMoveException {
-		int newPostion = currentMonster.getPosition() + roll;
-		if (newPostion == opponentMonster.getPosition())
+		int newPosition = currentMonster.getPosition() + roll;
+		if (newPosition > 99)
+			newPosition -= 100;
+		if (newPosition == opponentMonster.getPosition())
 			throw new InvalidMoveException();
 		else {
-			currentMonster.setPosition(newPostion);
-			getCell(newPostion).onLand(currentMonster, opponentMonster);
+			currentMonster.setPosition(newPosition);
+			getCell(newPosition).onLand(currentMonster, opponentMonster);
 			if (currentMonster.isConfused()) {
 				currentMonster.decrementConfusion();
 				opponentMonster.decrementConfusion();				
