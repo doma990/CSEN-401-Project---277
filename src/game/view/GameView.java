@@ -63,6 +63,7 @@ public class GameView {
 	private Button scarerButton;
 	private Button laugherButton;
 	private Button instructionsButton;
+	private BorderPane mainMenuLayout;
 	
 //	The stack centered in the borderpane, which has the board and the diagonal transport on top of the board
 	private StackPane mainBoardContainer;
@@ -115,7 +116,7 @@ public class GameView {
 	}
 	
 	public BorderPane placeUIComponents() {
-		BorderPane root = new BorderPane();
+		this.mainMenuLayout = new BorderPane();
 		String imagePath = getClass().getResource("/resources/Welcome-Screen.jpeg").toExternalForm();
 		Image bgImg = new Image(imagePath); 
 		BackgroundImage background = new BackgroundImage(
@@ -126,7 +127,7 @@ public class GameView {
 				new BackgroundSize(100, 100, true, true, false, true)
 		);
 		
-		root.setBackground(new Background(background));
+		mainMenuLayout.setBackground(new Background(background));
 		
 //		A containter for "Play as Laugher" , "Play as scarer" , and "Instructions" buttons
 		VBox allButtons = new VBox(30);
@@ -139,12 +140,12 @@ public class GameView {
 		scarerAndLaugherButtons.getChildren().addAll(scarerButton, laugherButton);
 		allButtons.getChildren().addAll(scarerAndLaugherButtons, instructionsButton);
 		
-		root.setTop(gameTitle);
-		root.setCenter(allButtons);
+		mainMenuLayout.setTop(gameTitle);
+		mainMenuLayout.setCenter(allButtons);
 		
 		BorderPane.setAlignment(gameTitle, Pos.CENTER);
 
-		return root;
+		return mainMenuLayout;
 	}
 	
 	public BorderPane loadTheBoard(Cell[][] boardCells, String playerName, String opponentName) {
@@ -800,5 +801,17 @@ public class GameView {
 	
 	public Label getDiceLabel() {
 		return diceRollLabel;
-	}	
+	}
+	
+	public Button getBackButton() {
+		return backButton;
+	}
+	
+	public BorderPane getMainMenuLayout() {
+		return mainMenuLayout;
+	}
 }
+
+
+
+

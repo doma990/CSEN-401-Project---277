@@ -199,6 +199,19 @@ public class GameController extends Application {
 //		Designing new layout and scene
 		VBox root = gameView.createVictoryScreen(winner, loser);
 		
+		gameView.getBackButton().setOnAction(new EventHandler<ActionEvent>() {
+			
+			public void handle(ActionEvent event) {
+				
+				Scene scene = new Scene(gameView.getMainMenuLayout(), 1000, 600);
+				primaryStage.setScene(scene);
+				primaryStage.setTitle("DooRDasH - Start Clocking In");
+				primaryStage.show();
+				
+			}
+			
+		});
+		
 //		New Scene
 		Scene victoryScene = new Scene(root, 1000, 600);
 		primaryStage.setScene(victoryScene);
