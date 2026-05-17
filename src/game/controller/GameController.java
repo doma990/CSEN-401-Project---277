@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import game.engine.Board;
 import game.engine.Game;
 import game.engine.Role;
+import game.engine.cards.Card;
 import game.engine.cells.CardCell;
 import game.engine.cells.Cell;
 import game.engine.cells.ContaminationSock;
@@ -118,6 +119,11 @@ public class GameController extends Application {
 			        int newEnergy = current.getEnergy();
 			        Role newRole = current.getRole();
 
+			        int[] newPosRowAndCol = gameView.indexToRowCol(newPos);
+			        Cell newCell = game.getBoard().getBoardCells()[newPosRowAndCol[0]][newPosRowAndCol[1]];
+			        if (newCell instanceof CardCell)
+			        	drawCardFromBoard();
+			        
 			        gameView.logAction(name + " rolled a " + dice + ".");
 			        
 			        gameView.getDiceLabel().setText("Dice: " + dice);
@@ -180,6 +186,14 @@ public class GameController extends Application {
 		
 		Scene gameScene = new Scene(gameWindow, 1000, 600);
 		primaryStage.setScene(gameScene);
+	}
+	
+	private void drawCardFromBoard() {
+		
+		Card card = Board.drawCard();
+		gameView.animateCardPopup(card);
+		gameView.updateCardVBox(card);
+		
 	}
 	
 	private String getCellName(int pos) {

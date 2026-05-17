@@ -4,12 +4,19 @@ import java.util.List;
 
 import game.engine.Constants;
 import game.engine.Role;
+import game.engine.cards.Card;
+import game.engine.cards.ConfusionCard;
+import game.engine.cards.EnergyStealCard;
+import game.engine.cards.ShieldCard;
+import game.engine.cards.StartOverCard;
+import game.engine.cards.SwapperCard;
 import game.engine.cells.*;
 import game.engine.monsters.Dasher;
 import game.engine.monsters.Dynamo;
 import game.engine.monsters.Monster;
 import game.engine.monsters.MultiTasker;
 import game.engine.monsters.Schemer;
+import javafx.animation.FadeTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -31,6 +38,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -39,6 +47,8 @@ import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.TextAlignment;
+import javafx.util.Duration;
 
 public class GameView {
 	
@@ -50,6 +60,8 @@ public class GameView {
 	private Button laugherButton;
 	private Button instructionsButton;
 	
+//	The stack centered in the borderpane, which has the board and the diagonal transport on top of the board
+	private StackPane mainBoardContainer;
 	private GridPane boardGrid;
 	
 //	Bottom Panel Components
@@ -128,11 +140,11 @@ public class GameView {
 	}
 	
 	public BorderPane loadTheBoard(Cell[][] boardCells, String playerName, String opponentName) {
-		
+
 //		Root Node
 		BorderPane entireWindow = new BorderPane();
 //		A stack which has both the board gridpane and above it the overlay pane for diagonal extensions
-		StackPane mainBoardContainer = new StackPane();
+		this.mainBoardContainer = new StackPane();
 		mainBoardContainer.setMaxSize(10*CELL_SIZE, 10*CELL_SIZE);
 //		GridPane to hold the board's cells
 		GridPane board = new GridPane();
@@ -269,6 +281,52 @@ public class GameView {
 		BorderPane.setAlignment(header, Pos.CENTER);
 		
 		return entireWindow;
+	}
+	
+	public void animateCardPopup(Card drawnCard) {
+		
+	    Image cardImage = new Image(getClass().getResource(getCardImagePath(drawnCard)).toExternalForm());
+	    ImageView cardImageView = new ImageView(cardImage);
+	    
+	    cardImageView.setFitWidth(200);
+	    cardImageView.setFitHeight(300);
+	    
+	    DropShadow shadow = new DropShadow();
+	    shadow.setRadius(15);
+	    shadow.setOffsetX(5);
+	    shadow.setOffsetY(5);
+	    cardImageView.setEffect(shadow);
+
+	    mainBoardContainer.getChildren().add(cardImageView);
+
+//	    Fade transition
+	    FadeTransition fadeOut = new FadeTransition(Duration.millis(1500), cardImageView);
+	    fadeOut.setFromValue(1.0);
+	    fadeOut.setToValue(0.0);
+	    fadeOut.setDelay(Duration.millis(3000)); 
+	    
+	    fadeOut.setOnFinished(event -> mainBoardContainer.getChildren().remove(cardImageView));
+
+	    fadeOut.play();
+	}
+	
+	private String getCardImagePath(Card card) {
+	    if (card instanceof ShieldCard) return "/resources/cards/shield.png";
+	    if (card instanceof SwapperCard) return "/resources/cards/swap.png";
+	    if (card instanceof StartOverCard) return "/resources/cards/start-over.png";
+	    if (card instanceof ConfusionCard) return "/resources/cards/confusion.png";
+	    if (card instanceof EnergyStealCard) return "/resources/cards/steal.png";
+	    return "/resources/card.png";
+	}
+	
+	public void updateCardVBox(Card card) {
+		
+		String cardName = card.getName();
+		String cardDescription = card.getDescription();
+		
+		this.cardNameLabel.setText(cardName);
+		this.cardEffectLabel.setText(cardDescription);
+		
 	}
 	
 	private int[] getEndRowAndColForTransport(int effect, int i, int j) {
@@ -559,6 +617,8 @@ public class GameView {
 	    this.cardEffectLabel = new Label("No effect");
 	    cardEffectLabel.setWrapText(true);
 	    cardEffectLabel.setAlignment(Pos.CENTER);
+	    cardEffectLabel.setMinHeight(Region.USE_PREF_SIZE);
+	    cardEffectLabel.setTextAlignment(TextAlignment.CENTER);
 	    
 	    cardViewer.getChildren().addAll(cardHeader, cardNameLabel, cardEffectLabel);
 
