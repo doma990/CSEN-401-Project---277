@@ -17,6 +17,7 @@ import game.engine.monsters.Monster;
 import game.engine.monsters.MultiTasker;
 import game.engine.monsters.Schemer;
 import javafx.animation.FadeTransition;
+import javafx.animation.PathTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -46,6 +47,9 @@ import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.shape.Line;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
@@ -63,6 +67,7 @@ public class GameView {
 //	The stack centered in the borderpane, which has the board and the diagonal transport on top of the board
 	private StackPane mainBoardContainer;
 	private GridPane boardGrid;
+	private Pane overlayPane;
 	
 //	Bottom Panel Components
 //	Left HBox
@@ -77,6 +82,9 @@ public class GameView {
 	private VBox cardViewer;
 	private Label cardNameLabel;
 	private Label cardEffectLabel;
+	
+//	Back Button at Winner Layout
+	private Button backButton;
 	
 	public GameView() {
 		gameTitle = new Label("DooRDasH: Scare vs Laugh Touchdown");
@@ -150,7 +158,7 @@ public class GameView {
 		GridPane board = new GridPane();
 //		board.setGridLinesVisible(true);
 //		Pane to hold diagonal extensions of contamination sock and conveyor belt above the board grid
-		Pane overlayPane = new Pane();
+		this.overlayPane = new Pane();
 		overlayPane.setMouseTransparent(true);
 		
 		board.setAlignment(Pos.CENTER);
@@ -329,52 +337,105 @@ public class GameView {
 		
 	}
 	
+	private double[] getPixelsFromIndex(int cellIndex) {
+		
+	    int[] rowCol = indexToRowCol(cellIndex); 
+	    
+	    return getPixelsFromRowAndCol(rowCol[0], rowCol[1]);
+	}
+	
+	private double[] getPixelsFromRowAndCol(int row, int col) {
+		
+	    int visualRow = 9 - row; 
+
+	    double x = (col * CELL_SIZE) + (CELL_SIZE / 2);
+	    double y = (visualRow * CELL_SIZE) + (CELL_SIZE / 2);
+	    
+	    return new double[]{x,y};
+
+	}
+	
+	private Line drawDiagonalItem(int startRow, int startCol, int endRow, int endCol) {
+		
+		double[] start = getPixelsFromRowAndCol(startRow, startCol);
+		double[] end = getPixelsFromRowAndCol(endRow, endCol);
+				
+	    Line line = new Line(start[0], start[1], end[0], end[1]);
+	    
+	    return line;
+	}
+	
 	private int[] getEndRowAndColForTransport(int effect, int i, int j) {
 		int startIndex = (i % 2 == 0) ? (i * 10) + j : (i * 10) + (9 - j);
 		int endIndex = startIndex + effect;		
 		return indexToRowCol(endIndex);
 	}
 	
-	private Line drawDiagonalItem(int startRow, int startCol, int endRow, int endCol) {
-				
-		int visualStartRow = 9 - startRow;
-	    int visualEndRow = 9 - endRow;
-
-	    double startX = (startCol * CELL_SIZE) + (CELL_SIZE / 2);
-	    double startY = (visualStartRow * CELL_SIZE) + (CELL_SIZE / 2);
-	    
-	    double endX = (endCol * CELL_SIZE) + (CELL_SIZE / 2);
-	    double endY = (visualEndRow * CELL_SIZE) + (CELL_SIZE / 2);
-	    
-	    Line line = new Line(startX, startY, endX, endY);
-	    
-	    return line;
-	}
-	
-	public void updateBoardAfterRoll(Monster current, int oldPosition, int newPosition, BorderPane gameWindow) {
+	public void updateBoardAfterRoll(String currentName, int oldPosition, int newPosition) {
 //		Calculating indices of start and end positions
 		int[] startRowAndCol = indexToRowColRespectingGridPane(oldPosition);
 		int[] endRowAndCol = indexToRowColRespectingGridPane(newPosition);
 		
-//		Board's grid
-		GridPane board = this.boardGrid;
-		
 //		Retrieving cell stack for old and new cells
-		StackPane oldStack = getNodeFromGridPane(board, startRowAndCol[1], startRowAndCol[0]);
-		StackPane newStack = getNodeFromGridPane(board, endRowAndCol[1], endRowAndCol[0]);
+		StackPane oldStack = getNodeFromGridPane(this.boardGrid, startRowAndCol[1], startRowAndCol[0]);
+		StackPane newStack = getNodeFromGridPane(this.boardGrid, endRowAndCol[1], endRowAndCol[0]);
 		
 //		Retrieving the HBox container of the monsters for both old and new cells
 		HBox oldHBox = (HBox) oldStack.getChildren().get(oldStack.getChildren().size() - 1);
 		HBox newHBox = (HBox) newStack.getChildren().get(newStack.getChildren().size() - 1);
 		
 //		Retrieving ImageView object for the monster using its name which was set previously as an ID
-		ImageView imageView = (ImageView) getNodeById(oldHBox, current.getName());
+		ImageView imageView = (ImageView) getNodeById(oldHBox, currentName);
 		
-//		Removing monster from old cell and adding it to the new cell
-		if (imageView != null) {
-			oldHBox.getChildren().remove(imageView);
-			newHBox.getChildren().add(imageView);
-		}
+//		Adding animation to movement
+		animateMonsterMovement(imageView, oldPosition, newPosition, oldHBox, newHBox);		
+	}
+	
+	public void animateMonsterMovement(ImageView realMonsterImg, int startPos, int endPos, HBox oldHBox, HBox newHBox) {
+		
+	    oldHBox.getChildren().remove(realMonsterImg);
+
+	    ImageView ghost = new ImageView(realMonsterImg.getImage());
+	    ghost.setFitWidth(35);
+	    ghost.setFitHeight(35);
+	    
+	    // Center the ghost image on its X/Y coordinates
+	    ghost.setTranslateX(-17.5); 
+	    ghost.setTranslateY(-17.5);
+	    
+	    overlayPane.getChildren().add(ghost);
+
+//	    Building the path
+	    Path path = new Path();
+	    double[] startCoords = getPixelsFromIndex(startPos);
+	    path.getElements().add(new MoveTo(startCoords[0], startCoords[1]));
+
+//	    Determine if we are moving forward or backward
+	    int step = (startPos < endPos) ? 1 : -1;
+	    int currentPos = startPos;
+	    
+	    while (currentPos != endPos) {
+	        currentPos += step;
+	        double[] nextCoords = getPixelsFromIndex(currentPos);
+	        path.getElements().add(new LineTo(nextCoords[0], nextCoords[1]));
+	    }
+
+	    PathTransition pathTransition = new PathTransition();
+	    pathTransition.setNode(ghost);
+	    pathTransition.setPath(path);
+	    
+	    int cellsMoved = Math.abs(endPos - startPos);
+	    pathTransition.setDuration(Duration.millis(300 * cellsMoved));
+
+	    pathTransition.setOnFinished(event -> {
+	    	
+	        overlayPane.getChildren().remove(ghost);
+	        
+	        newHBox.getChildren().add(realMonsterImg);
+	        
+	    });
+
+	    pathTransition.play();
 	}
 		
 	private Node getNodeById(Pane parentNode, String id) {
@@ -384,6 +445,53 @@ public class GameView {
 	        }
 	    }
 	    return null;
+	}
+	
+	public VBox createVictoryScreen(Monster winner, Monster loser) {
+		
+	    VBox root = new VBox(40);
+	    
+	    root.setAlignment(Pos.CENTER);
+	    root.setStyle("-fx-background-color: #2c3e50; -fx-padding: 50px;");
+
+	    Label titleLabel = new Label(winner.getName() + " WINS!");
+	    titleLabel.setStyle("-fx-font-family: 'Impact'; -fx-font-size: 80px; -fx-text-fill: #f1c40f;");
+	    
+	    DropShadow shadow = new DropShadow();
+	    shadow.setRadius(10);
+	    shadow.setColor(Color.BLACK);
+	    titleLabel.setEffect(shadow);
+
+	    Label roleLabel = new Label("The Ultimate " + winner.getRole() + "!");
+	    roleLabel.setStyle("-fx-font-size: 30px; -fx-text-fill: white; -fx-font-weight: bold;");
+
+	    HBox statsBox = new HBox(80);
+	    statsBox.setAlignment(Pos.CENTER);
+
+	    VBox winnerStats = new VBox(10);
+	    winnerStats.setAlignment(Pos.CENTER);
+	    Label wName = new Label("Winner: " + winner.getName());
+	    Label wEnergy = new Label("Final Energy: " + winner.getEnergy());
+	    wName.setStyle("-fx-font-size: 24px; -fx-text-fill: #2ecc71; -fx-font-weight: bold;");
+	    wEnergy.setStyle("-fx-font-size: 20px; -fx-text-fill: white;");
+	    winnerStats.getChildren().addAll(wName, wEnergy);
+
+	    VBox loserStats = new VBox(10);
+	    loserStats.setAlignment(Pos.CENTER);
+	    Label lName = new Label("Runner-up: " + loser.getName());
+	    Label lEnergy = new Label("Final Energy: " + loser.getEnergy());
+	    lName.setStyle("-fx-font-size: 24px; -fx-text-fill: #e74c3c; -fx-font-weight: bold;");
+	    lEnergy.setStyle("-fx-font-size: 20px; -fx-text-fill: #bdc3c7;"); // Muted grey
+	    loserStats.getChildren().addAll(lName, lEnergy);
+
+	    statsBox.getChildren().addAll(winnerStats, loserStats);
+
+	    this.backButton = new Button("Return to Main Menu");
+	    backButton.setStyle("-fx-font-size: 20px; -fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 15px 30px;");
+
+	    root.getChildren().addAll(titleLabel, roleLabel, statsBox, backButton);
+
+	    return root; 
 	}
 
 	private StackPane getNodeFromGridPane(GridPane gridPane, int col, int row) {

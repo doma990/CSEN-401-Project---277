@@ -148,11 +148,15 @@ public class GameController extends Application {
 			        }
 
 			        // updating the entire gamewindow
-					updateViewAfterDiceRoll(current, oldPos, newPos, gameWindow);
+					updateViewAfterDiceRoll(current.getName(), oldPos, newPos, gameWindow);
 					updateHeader((Label) gameWindow.getTop());
 					generateMonstersCards(gameWindow);
 					if (newPos % 2 == 1)
 						deactivateDoorCell(newPos, gameWindow);
+					
+					if (game.getWinner() != null) {
+						declareWinner(primaryStage);
+					}
 						
 					}
 				 catch (InvalidMoveException e) {
@@ -186,6 +190,21 @@ public class GameController extends Application {
 		
 		Scene gameScene = new Scene(gameWindow, 1000, 600);
 		primaryStage.setScene(gameScene);
+	}
+	
+	private void declareWinner(Stage primaryStage) {
+		Monster winner = game.getWinner();
+		Monster loser = (game.getPlayer().getName().equals(winner.getName())) ? game.getOpponent() : game.getPlayer();
+		
+//		Designing new layout and scene
+		VBox root = gameView.createVictoryScreen(winner, loser);
+		
+//		New Scene
+		Scene victoryScene = new Scene(root, 1000, 600);
+		primaryStage.setScene(victoryScene);
+		primaryStage.setTitle("Congrats!!");
+		primaryStage.show();
+		
 	}
 	
 	private void drawCardFromBoard() {
@@ -240,8 +259,8 @@ public class GameController extends Application {
 
 	}
 	
-	private void updateViewAfterDiceRoll(Monster current, int oldPosition, int newPosition, BorderPane gameWindow) {
-		gameView.updateBoardAfterRoll(current, oldPosition, newPosition, gameWindow);
+	private void updateViewAfterDiceRoll(String currentName, int oldPosition, int newPosition, BorderPane gameWindow) {
+		gameView.updateBoardAfterRoll(currentName, oldPosition, newPosition);
 	}
 	
 	private void updateHeader(Label label) {
