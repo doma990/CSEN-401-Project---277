@@ -6,6 +6,12 @@ import java.util.ArrayList;
 import game.engine.Board;
 import game.engine.Game;
 import game.engine.Role;
+import game.engine.cells.CardCell;
+import game.engine.cells.Cell;
+import game.engine.cells.ContaminationSock;
+import game.engine.cells.ConveyorBelt;
+import game.engine.cells.DoorCell;
+import game.engine.cells.MonsterCell;
 import game.engine.exceptions.InvalidMoveException;
 import game.engine.exceptions.OutOfEnergyException;
 import game.engine.monsters.Monster;
@@ -80,41 +86,71 @@ public class GameController extends Application {
 //		Generating left and right panels
 		generateMonstersCards(gameWindow);
 		
-		gameWindow.setBottom(gameView.generateActionBar());
+//		Generating bottom panel
+		gameWindow.setBottom(gameView.generateBottomSection());
+		
+		gameWindow.setBottom(gameView.generateBottomSection());
 		
 		gameView.getRollDiceButton().setOnAction(new EventHandler<ActionEvent>(){
 			
 			public void handle(ActionEvent event) {
-//				TODO : Roll the dice
+				
+				Monster current = game.getCurrent();
+				String name = current.getName();
+				
+				int oldPos = current.getPosition();
+				int oldEnergy = current.getEnergy();
+				Role oldRole = current.getRole();
+				
 				try {			
-					Monster current = game.getCurrent();
-					int oldPosition = current.getPosition();
-//					If the monster is frozen turn will be skipped
+				    
 					if (current.isFrozen()) {
+						gameView.logAction(name + " is Frozen! Turn Skipped.");
 						displayAlert("Ahh", "Your turn was skipped as you were frozen.", "OK");
 						game.playTurn();						
-					} else {						
-						game.playTurn();
-						
-						int dice = game.getLastDiceRoll();
-						gameView.getActionBar().getChildren().remove(2);
-						gameView.getActionBar().getChildren().addAll(new Label("Dice: " + dice));
-						
-//						Starting updates
-//						#1 Updating the monster's cell on the board after rolling the dice
-						updateViewAfterDiceRoll(current, oldPosition, current.getPosition(), gameWindow);
-						
-//						#2 Updating the header (which player's turn it is)
-						updateHeader((Label) gameWindow.getTop());
-						
-//						#3 Regenerating the monsters cards on the left and right panels
-						generateMonstersCards(gameWindow);
-						
-//						#4 Deactivating the door
-						if (current.getPosition() % 2 == 1)
-							deactivateDoorCell(current.getPosition(), gameWindow);
+						return;
 					}
-				} catch (InvalidMoveException e) {
+						
+					game.playTurn();
+
+			        int dice = game.getLastDiceRoll();
+			        int newPos = current.getPosition();
+			        int newEnergy = current.getEnergy();
+			        Role newRole = current.getRole();
+
+			        gameView.logAction(name + " rolled a " + dice + ".");
+			        
+			        gameView.getDiceLabel().setText("Dice: " + dice);
+
+			        gameView.logAction(name + " landed on a " + getCellName(newPos) + ".");
+			        
+//				        Transport Cell
+			        if (oldPos + dice != newPos) {
+			            gameView.logAction(name + " was transported to cell " + newPos + "!");
+			        }
+
+//				        Energy Changes
+			        if (newEnergy > oldEnergy) {
+			            gameView.logAction(name + " gained " + (newEnergy - oldEnergy) + " energy.");
+			        } else if (newEnergy < oldEnergy) {
+			            gameView.logAction(name + " lost " + (oldEnergy - newEnergy) + " energy.");
+			        }
+
+//				        Role Swap
+			        if (oldRole != newRole) {
+			            gameView.logAction(name + "'s role was swapped to " + newRole + "!");
+			        }
+
+			        // updating the entire gamewindow
+					updateViewAfterDiceRoll(current, oldPos, newPos, gameWindow);
+					updateHeader((Label) gameWindow.getTop());
+					generateMonstersCards(gameWindow);
+					if (newPos % 2 == 1)
+						deactivateDoorCell(newPos, gameWindow);
+						
+					}
+				 catch (InvalidMoveException e) {
+					gameView.logAction(name + " couldn't move: " + e.getMessage());
 					displayAlert("Invalid Move", "Unable to move to this position, try again.", "Try Again");
 				}
 				
@@ -125,12 +161,18 @@ public class GameController extends Application {
 		gameView.getUsePowerupButton().setOnAction(new EventHandler<ActionEvent>(){
 			
 			public void handle(ActionEvent event) {
-//				TODO : Use the powerup
+				
 				try {
 					game.usePowerup();
+					gameView.logAction(game.getCurrent().getName() + " just used their Power Up!");
 					generateMonstersCards(gameWindow);
+					
 				} catch (OutOfEnergyException e) {
+					
+					gameView.logAction(game.getCurrent().getName() + " tried to use a Power Up but didn't have enough energy.");
+//					Might be unnecessary, check later
 					displayAlert("Out of Energy", "Cannot Execute Powerup Effect Due to Low Canister Energy", "OK");
+					
 				}
 			}
 			
@@ -138,6 +180,33 @@ public class GameController extends Application {
 		
 		Scene gameScene = new Scene(gameWindow, 1000, 600);
 		primaryStage.setScene(gameScene);
+	}
+	
+	private String getCellName(int pos) {
+		String result = "";
+		Cell[][] boardCells = game.getBoard().getBoardCells();
+		int[] posRowAndCol = gameView.indexToRowCol(pos);
+		Cell cell = boardCells[posRowAndCol[0]][posRowAndCol[1]];
+		if (cell instanceof CardCell)
+			result = "CARD CELL";
+		else if (cell instanceof ConveyorBelt)
+			result = "CONVEYOR BELT";
+		else if (cell instanceof ContaminationSock)
+			result = "CONTAMINATION SOCK";
+		else if (cell instanceof DoorCell) {
+			if (((DoorCell) cell).getRole() == Role.SCARER)
+				result = "SCARER DOOR";
+			else
+				result = "LAUGHER DOOR";
+		}
+		else if (cell instanceof MonsterCell) {
+			String monsterName = cell.getName().toUpperCase();
+			result = "MONSTER CELL : " + monsterName;
+		}
+		else
+			result = "NORMAL CELL";
+		return result;
+		
 	}
 	
 	private void generateMonstersCards(BorderPane gameWindow) {

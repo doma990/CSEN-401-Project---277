@@ -17,6 +17,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextArea;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -29,6 +30,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -42,13 +44,27 @@ public class GameView {
 	
 	private final int CELL_SIZE = 80;
 	
+//	Welcome Screen Components
 	private Label gameTitle;
 	private Button scarerButton;
 	private Button laugherButton;
 	private Button instructionsButton;
+	
+	private GridPane boardGrid;
+	
+//	Bottom Panel Components
+//	Left HBox
 	private Button rollDiceButton;
 	private Button usePowerupButton;
-	private HBox actionBar;
+	private Label diceRollLabel;
+	
+//	Middle Textarea
+	private TextArea actionLog;
+	
+//	Right VBox
+	private VBox cardViewer;
+	private Label cardNameLabel;
+	private Label cardEffectLabel;
 	
 	public GameView() {
 		gameTitle = new Label("DooRDasH: Scare vs Laugh Touchdown");
@@ -243,6 +259,8 @@ public class GameView {
 			}
 		}
 		
+		this.boardGrid = board;
+		
 		mainBoardContainer.getChildren().addAll(board, overlayPane);
 		entireWindow.setCenter(mainBoardContainer);
 		
@@ -281,7 +299,7 @@ public class GameView {
 		int[] endRowAndCol = indexToRowColRespectingGridPane(newPosition);
 		
 //		Board's grid
-		GridPane board = ((GridPane) ((StackPane) gameWindow.getCenter()).getChildren().get(0));
+		GridPane board = this.boardGrid;
 		
 //		Retrieving cell stack for old and new cells
 		StackPane oldStack = getNodeFromGridPane(board, startRowAndCol[1], startRowAndCol[0]);
@@ -319,7 +337,7 @@ public class GameView {
 	    return null;
 	}
 	
-	private int[] indexToRowCol(int index) {
+	public int[] indexToRowCol(int index) {
 		int cols = Constants.BOARD_COLS;
 		
 		int row = index / cols;
@@ -473,7 +491,7 @@ public class GameView {
 	
 	public void deactivateDoorOnTheBoard(BorderPane gameWindow, int doorPosition) {
 //		Extracting the board
-		GridPane board = ((GridPane) ((StackPane) gameWindow.getCenter()).getChildren().get(0));
+		GridPane board = boardGrid;
 //		Calculating cell row and column from its index
 		int[] doorRowAndCol = indexToRowColRespectingGridPane(doorPosition);
 //		Extracting the cell stack from the board using row and column indices
@@ -496,24 +514,61 @@ public class GameView {
 		}
 	}
 	
-	public HBox generateActionBar() {
-		HBox actionBar = new HBox(20);
-		actionBar.setAlignment(Pos.CENTER);
-		actionBar.setPadding(new Insets(20));
+	public HBox generateBottomSection() {		
+//		Main Container for the bottom panel
+	    HBox bottomPanel = new HBox(20);
+	    bottomPanel.setAlignment(Pos.CENTER);
+	    bottomPanel.setPadding(new Insets(15));
+	    bottomPanel.setStyle("-fx-background-color: #ecf0f1; -fx-border-color: #bdc3c7; -fx-border-width: 2 0 0 0;");
+
+	    // Left Section : Buttons
+	    VBox leftSection = new VBox(10);
+	    leftSection.setAlignment(Pos.CENTER);
+	    
+	    this.rollDiceButton = new Button("Roll Dice");
+	    this.usePowerupButton = new Button("Use Power Up");
+	    rollDiceButton.setStyle("-fx-font-size: 14px; -fx-background-color: #2ecc71; -fx-text-fill: white; -fx-font-weight: bold;");
+	    usePowerupButton.setStyle("-fx-font-size: 14px; -fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold;");
+	    
+	    this.diceRollLabel = new Label("Dice: -");
+	    diceRollLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+	    
+	    leftSection.getChildren().addAll(rollDiceButton, usePowerupButton, diceRollLabel);
+
+//	    Middle Section : Text area to log actions done
+	    this.actionLog = new TextArea();
+	    actionLog.setEditable(false);
+	    actionLog.setWrapText(true);
+	    actionLog.setPrefHeight(100);
+	    actionLog.setStyle("-fx-control-inner-background: #2c3e50; -fx-text-fill: #ecf0f1; -fx-font-family: 'Consolas';");
+	    
+	    HBox.setHgrow(actionLog, Priority.ALWAYS);
+
+//	    Right Section : Card Placeholder
+	    this.cardViewer = new VBox(5);
+	    cardViewer.setAlignment(Pos.CENTER);
+	    cardViewer.setPrefWidth(200);
+	    cardViewer.setStyle("-fx-background-color: white; -fx-border-color: #e74c3c; -fx-border-radius: 5px; -fx-border-width: 2px; -fx-padding: 10px;");
+	    
+	    Label cardHeader = new Label("Last Card Drawn");
+	    cardHeader.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 12px;");
+	    
+	    this.cardNameLabel = new Label("None");
+	    cardNameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #c0392b;");
+	    
+	    this.cardEffectLabel = new Label("No effect");
+	    cardEffectLabel.setWrapText(true);
+	    cardEffectLabel.setAlignment(Pos.CENTER);
+	    
+	    cardViewer.getChildren().addAll(cardHeader, cardNameLabel, cardEffectLabel);
+
+	    bottomPanel.getChildren().addAll(leftSection, actionLog, cardViewer);
+	    
+	    return bottomPanel;
+	}
 		
-		Button rollDiceButton = new Button("Roll Dice");
-		Button powerUpButton = new Button("Use Power Up");
-		
-		rollDiceButton.setStyle("-fx-font-size: 16px; -fx-background-color: #4CAF50; -fx-text-fill: white;");
-		powerUpButton.setStyle("-fx-font-size: 16px; -fx-background-color: #2196F3; -fx-text-fill: white;");
-		
-		this.rollDiceButton = rollDiceButton;
-		this.usePowerupButton = powerUpButton;
-		this.actionBar = actionBar;
-		
-		actionBar.getChildren().addAll(rollDiceButton, powerUpButton, new Label());
-		
-		return actionBar;
+	public void logAction(String message) {
+	    actionLog.appendText(message + "\n");
 	}
 	
 	public VBox generateInstructionsPopup() {
@@ -575,7 +630,7 @@ public class GameView {
 		return usePowerupButton;
 	}
 	
-	public HBox getActionBar() {
-		return actionBar;
-	}
+	public Label getDiceLabel() {
+		return diceRollLabel;
+	}	
 }
