@@ -54,6 +54,12 @@ public class Game {
 		return current;
 	}
 	
+	public Monster getNotCurrent() {
+		if (getCurrent().getName().equals(getPlayer().getName()))
+				return getOpponent();
+		return getPlayer();
+	}
+	
 	public void setCurrent(Monster current) {
 		this.current = current;
 	}

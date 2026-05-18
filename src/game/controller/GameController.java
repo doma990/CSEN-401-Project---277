@@ -90,16 +90,16 @@ public class GameController extends Application {
 //		Generating bottom panel
 		gameWindow.setBottom(gameView.generateBottomSection());
 		
-		gameWindow.setBottom(gameView.generateBottomSection());
-		
 		gameView.getRollDiceButton().setOnAction(new EventHandler<ActionEvent>(){
 			
 			public void handle(ActionEvent event) {
 				
 				Monster current = game.getCurrent();
+				Monster notCurrent = game.getNotCurrent();
 				String name = current.getName();
 				
 				int oldPos = current.getPosition();
+				int oldPosNotCurrent = notCurrent.getPosition();
 				int oldEnergy = current.getEnergy();
 				Role oldRole = current.getRole();
 				
@@ -116,13 +116,14 @@ public class GameController extends Application {
 
 			        int dice = game.getLastDiceRoll();
 			        int newPos = current.getPosition();
+			        int newPosNotCurrent = notCurrent.getPosition();
 			        int newEnergy = current.getEnergy();
 			        Role newRole = current.getRole();
 
 			        int[] newPosRowAndCol = gameView.indexToRowCol(newPos);
 			        Cell newCell = game.getBoard().getBoardCells()[newPosRowAndCol[0]][newPosRowAndCol[1]];
 			        if (newCell instanceof CardCell)
-			        	drawCardFromBoard();
+			        	drawCardFromBoard(current, notCurrent);
 			        
 			        gameView.logAction(name + " rolled a " + dice + ".");
 			        
@@ -148,7 +149,11 @@ public class GameController extends Application {
 			        }
 
 			        // updating the entire gamewindow
-					updateViewAfterDiceRoll(current.getName(), oldPos, newPos, gameWindow);
+					updateViewAfterDiceRoll(current.getName(), oldPos, newPos);
+					
+					if (oldPosNotCurrent != newPosNotCurrent)
+						updateViewAfterDiceRoll(notCurrent.getName(), oldPosNotCurrent, newPosNotCurrent);
+					
 					updateHeader((Label) gameWindow.getTop());
 					generateMonstersCards(gameWindow);
 					if (newPos % 2 == 1)
@@ -156,9 +161,8 @@ public class GameController extends Application {
 					
 					if (game.getWinner() != null) {
 						declareWinner(primaryStage);
-					}
-						
-					}
+					}		
+				}
 				 catch (InvalidMoveException e) {
 					gameView.logAction(name + " couldn't move: " + e.getMessage());
 					displayAlert("Invalid Move", "Unable to move to this position, try again.", "Try Again");
@@ -220,9 +224,10 @@ public class GameController extends Application {
 		
 	}
 	
-	private void drawCardFromBoard() {
+	private void drawCardFromBoard(Monster current, Monster notCurrent) {
 		
 		Card card = Board.drawCard();
+		card.performAction(current, notCurrent);
 		gameView.animateCardPopup(card);
 		gameView.updateCardVBox(card);
 		
@@ -272,8 +277,8 @@ public class GameController extends Application {
 
 	}
 	
-	private void updateViewAfterDiceRoll(String currentName, int oldPosition, int newPosition, BorderPane gameWindow) {
-		gameView.updateBoardAfterRoll(currentName, oldPosition, newPosition);
+	private void updateViewAfterDiceRoll(String name, int oldPosition, int newPosition) {
+		gameView.updateBoardAfterRoll(name, oldPosition, newPosition);
 	}
 	
 	private void updateHeader(Label label) {

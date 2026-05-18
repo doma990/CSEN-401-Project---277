@@ -156,13 +156,13 @@ public class GameView {
 		this.mainBoardContainer = new StackPane();
 		mainBoardContainer.setMaxSize(10*CELL_SIZE, 10*CELL_SIZE);
 //		GridPane to hold the board's cells
-		GridPane board = new GridPane();
+		this.boardGrid = new GridPane();
 //		board.setGridLinesVisible(true);
 //		Pane to hold diagonal extensions of contamination sock and conveyor belt above the board grid
 		this.overlayPane = new Pane();
 		overlayPane.setMouseTransparent(true);
 		
-		board.setAlignment(Pos.CENTER);
+		boardGrid.setAlignment(Pos.CENTER);
 				
 		ImageView playerImage = new ImageView();
 		ImageView opponentImage = new ImageView();
@@ -183,9 +183,6 @@ public class GameView {
 				
 				currentCell = boardCells[i][j];
 				
-				HBox monstersContainer = new HBox(5);
-				monstersContainer.setAlignment(Pos.CENTER);
-				
 				StackPane cellStackPane = new StackPane();
 				
 				Rectangle background = new Rectangle(CELL_SIZE, CELL_SIZE);
@@ -194,15 +191,18 @@ public class GameView {
 				background.setStroke(Color.web("#2c3e50"));
 				background.setStrokeWidth(2.0);
 				
+				int cellNumber = (i % 2 == 0) ? (i * 10) + j : (i * 10) + (9 - j);
+				Label cellIndex = new Label(String.valueOf(cellNumber));
+				
 				ImageView cellIcon = new ImageView();
 				cellIcon.setFitHeight(60);
 				cellIcon.setFitWidth(60);
 				
+				HBox monstersContainer = new HBox(5);
+				monstersContainer.setAlignment(Pos.CENTER);
+				
 				Label doorEnergy = new Label();
 				doorEnergy.setTextFill(Color.BLACK);
-				
-				int cellNumber = (i % 2 == 0) ? (i * 10) + j : (i * 10) + (9 - j);
-				Label cellIndex = new Label(String.valueOf(cellNumber));
 				
 //					Card cell
 				if (currentCell instanceof CardCell) {
@@ -216,6 +216,7 @@ public class GameView {
 					background.setFill(createTileGradient("#ff9966", "#ff5e62"));
 					Image image = new Image(getClass().getResource("/resources/transport/sock.png").toExternalForm());
 					cellIcon.setImage(image);
+					
 					int effect = ((ContaminationSock) currentCell).getEffect();
 					int[] endCoordinates = getEndRowAndColForTransport(effect, i, j);
 					Line sock = drawDiagonalItem(i, j, endCoordinates[0], endCoordinates[1]);
@@ -232,6 +233,7 @@ public class GameView {
 					background.setFill(createTileGradient("#11998e", "#38ef7d"));
 					Image image = new Image(getClass().getResource("/resources/transport/belt.png").toExternalForm());
 					cellIcon.setImage(image);					
+					
 					int effect = ((ConveyorBelt) currentCell).getEffect();
 					int[] endCoordinates = getEndRowAndColForTransport(effect, i, j);
 					Line belt = drawDiagonalItem(i, j, endCoordinates[0], endCoordinates[1]);
@@ -276,13 +278,11 @@ public class GameView {
 				cellStackPane.getChildren().addAll(background, cellIndex, cellIcon, doorEnergy, monstersContainer);
 				StackPane.setAlignment(doorEnergy, Pos.BOTTOM_LEFT);					
 				StackPane.setAlignment(cellIndex, Pos.TOP_RIGHT);
-				board.add(cellStackPane, j, 9 - i);
+				boardGrid.add(cellStackPane, j, 9 - i);
 			}
 		}
 		
-		this.boardGrid = board;
-		
-		mainBoardContainer.getChildren().addAll(board, overlayPane);
+		mainBoardContainer.getChildren().addAll(boardGrid, overlayPane);
 		entireWindow.setCenter(mainBoardContainer);
 		
 		Label header = new Label("Player 1 : " + playerName);
@@ -394,49 +394,68 @@ public class GameView {
 	
 	public void animateMonsterMovement(ImageView realMonsterImg, int startPos, int endPos, HBox oldHBox, HBox newHBox) {
 		
-	    oldHBox.getChildren().remove(realMonsterImg);
+//	    oldHBox.getChildren().remove(realMonsterImg);
+//
+//	    ImageView ghost = new ImageView(realMonsterImg.getImage());
+//	    ghost.setFitWidth(35);
+//	    ghost.setFitHeight(35);
+//	    
+//	    // Center the ghost image on its X/Y coordinates
+//	    ghost.setTranslateX(-17.5); 
+//	    ghost.setTranslateY(-17.5);
+//	    
+//	    overlayPane.getChildren().add(ghost);
+//
+////	    Building the path
+//	    Path path = new Path();
+//	    double[] startCoords = getPixelsFromIndex(startPos);
+//	    path.getElements().add(new MoveTo(startCoords[0], startCoords[1]));
+//
+////	    Determine if we are moving forward or backward
+//	    int step = (startPos < endPos) ? 1 : -1;
+//	    int currentPos = startPos;
+//	    
+//	    while (currentPos != endPos) {
+//	        currentPos += step;
+//	        double[] nextCoords = getPixelsFromIndex(currentPos);
+//	        path.getElements().add(new LineTo(nextCoords[0], nextCoords[1]));
+//	    }
+//
+//	    PathTransition pathTransition = new PathTransition();
+//	    pathTransition.setNode(ghost);
+//	    pathTransition.setPath(path);
+//	    
+//	    int cellsMoved = Math.abs(endPos - startPos);
+//	    pathTransition.setDuration(Duration.millis(300 * cellsMoved));
+//
+//	    pathTransition.setOnFinished(event -> {
+//	    	
+//	        overlayPane.getChildren().remove(ghost);
+//	        
+//	        newHBox.getChildren().add(realMonsterImg);
+//	        
+//	        getRollDiceButton().setDisable(false);
+//	        
+//	    });
+//
+//	    pathTransition.play();
+		oldHBox.getChildren().remove(realMonsterImg);
 
-	    ImageView ghost = new ImageView(realMonsterImg.getImage());
-	    ghost.setFitWidth(35);
-	    ghost.setFitHeight(35);
-	    
-	    // Center the ghost image on its X/Y coordinates
-	    ghost.setTranslateX(-17.5); 
-	    ghost.setTranslateY(-17.5);
-	    
-	    overlayPane.getChildren().add(ghost);
+	    FadeTransition fadeOut = new FadeTransition(Duration.millis(200), realMonsterImg);
+	    fadeOut.setFromValue(1.0);
+	    fadeOut.setToValue(0.0);
 
-//	    Building the path
-	    Path path = new Path();
-	    double[] startCoords = getPixelsFromIndex(startPos);
-	    path.getElements().add(new MoveTo(startCoords[0], startCoords[1]));
-
-//	    Determine if we are moving forward or backward
-	    int step = (startPos < endPos) ? 1 : -1;
-	    int currentPos = startPos;
-	    
-	    while (currentPos != endPos) {
-	        currentPos += step;
-	        double[] nextCoords = getPixelsFromIndex(currentPos);
-	        path.getElements().add(new LineTo(nextCoords[0], nextCoords[1]));
-	    }
-
-	    PathTransition pathTransition = new PathTransition();
-	    pathTransition.setNode(ghost);
-	    pathTransition.setPath(path);
-	    
-	    int cellsMoved = Math.abs(endPos - startPos);
-	    pathTransition.setDuration(Duration.millis(300 * cellsMoved));
-
-	    pathTransition.setOnFinished(event -> {
-	    	
-	        overlayPane.getChildren().remove(ghost);
-	        
+	    fadeOut.setOnFinished(event -> {
 	        newHBox.getChildren().add(realMonsterImg);
-	        
+
+	        FadeTransition fadeIn = new FadeTransition(Duration.millis(200), realMonsterImg);
+	        fadeIn.setFromValue(0.0);
+	        fadeIn.setToValue(1.0);
+
+	        fadeIn.play();
 	    });
 
-	    pathTransition.play();
+	    fadeOut.play();
 	}
 		
 	private Node getNodeById(Pane parentNode, String id) {
