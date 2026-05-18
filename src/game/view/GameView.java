@@ -1,6 +1,6 @@
 package game.view;
 
-import java.util.List;
+import java.util.List; 
 
 import game.engine.Constants;
 import game.engine.Role;
@@ -17,7 +17,6 @@ import game.engine.monsters.Monster;
 import game.engine.monsters.MultiTasker;
 import game.engine.monsters.Schemer;
 import javafx.animation.FadeTransition;
-import javafx.animation.PathTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -48,9 +47,6 @@ import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.shape.Line;
-import javafx.scene.shape.LineTo;
-import javafx.scene.shape.MoveTo;
-import javafx.scene.shape.Path;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
@@ -337,13 +333,6 @@ public class GameView {
 		this.cardNameLabel.setText(cardName);
 		this.cardEffectLabel.setText(cardDescription);
 		
-	}
-	
-	private double[] getPixelsFromIndex(int cellIndex) {
-		
-	    int[] rowCol = indexToRowCol(cellIndex); 
-	    
-	    return getPixelsFromRowAndCol(rowCol[0], rowCol[1]);
 	}
 	
 	private double[] getPixelsFromRowAndCol(int row, int col) {
@@ -742,13 +731,11 @@ public class GameView {
 		return result;
 	}
 	
-	public void deactivateDoorOnTheBoard(BorderPane gameWindow, int doorPosition) {
-//		Extracting the board
-		GridPane board = boardGrid;
+	public void deactivateDoorOnTheBoard(int doorPosition) {
 //		Calculating cell row and column from its index
 		int[] doorRowAndCol = indexToRowColRespectingGridPane(doorPosition);
 //		Extracting the cell stack from the board using row and column indices
-		StackPane doorCellStack = getNodeFromGridPane(board, doorRowAndCol[1], doorRowAndCol[0]);
+		StackPane doorCellStack = getNodeFromGridPane(this.boardGrid, doorRowAndCol[1], doorRowAndCol[0]);
 //		Extracting the cell's image view
 		ImageView scarerDoor = (ImageView) getNodeById(doorCellStack, "scarerDoor");
 		ImageView laugherDoor = (ImageView) getNodeById(doorCellStack, "laugherDoor");

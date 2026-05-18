@@ -115,27 +115,33 @@ public class GameController extends Application {
 					game.playTurn();
 
 			        int dice = game.getLastDiceRoll();
+			        
 			        int newPos = current.getPosition();
-			        int newPosNotCurrent = notCurrent.getPosition();
-			        int newEnergy = current.getEnergy();
-			        Role newRole = current.getRole();
-
+			        
 			        int[] newPosRowAndCol = gameView.indexToRowCol(newPos);
 			        Cell newCell = game.getBoard().getBoardCells()[newPosRowAndCol[0]][newPosRowAndCol[1]];
 			        if (newCell instanceof CardCell)
 			        	drawCardFromBoard(current, notCurrent);
 			        
+			        newPos = current.getPosition();
+			        int newPosNotCurrent = notCurrent.getPosition();
+			        int newEnergy = current.getEnergy();
+			        Role newRole = current.getRole();
+			        
 			        gameView.logAction(name + " rolled a " + dice + ".");
+			        
+//				        Transport Cell
+			        int posBeforeTransportInCaseATransport = oldPos + dice;
+			        int[] rowColBeforeTransportInCaseATransport = gameView.indexToRowCol(posBeforeTransportInCaseATransport);
+			        Cell cellBeforeTransportInCaseATransport = game.getBoard().getBoardCells()[rowColBeforeTransportInCaseATransport[0]][rowColBeforeTransportInCaseATransport[1]];
+			        if (cellBeforeTransportInCaseATransport instanceof ContaminationSock || cellBeforeTransportInCaseATransport instanceof ConveyorBelt) {
+			        	gameView.logAction(name + " was transported to cell " + newPos + "!");
+			        }
 			        
 			        gameView.getDiceLabel().setText("Dice: " + dice);
 
 			        gameView.logAction(name + " landed on a " + getCellName(newPos) + ".");
 			        
-//				        Transport Cell
-			        if (oldPos + dice != newPos) {
-			            gameView.logAction(name + " was transported to cell " + newPos + "!");
-			        }
-
 //				        Energy Changes
 			        if (newEnergy > oldEnergy) {
 			            gameView.logAction(name + " gained " + (newEnergy - oldEnergy) + " energy.");
@@ -157,7 +163,10 @@ public class GameController extends Application {
 					updateHeader((Label) gameWindow.getTop());
 					generateMonstersCards(gameWindow);
 					if (newPos % 2 == 1)
-						deactivateDoorCell(newPos, gameWindow);
+						deactivateDoorCell(newPos);
+					
+					if (newPosNotCurrent % 2 == 1)
+						deactivateDoorCell(newPosNotCurrent);
 					
 					if (game.getWinner() != null) {
 						declareWinner(primaryStage);
@@ -292,8 +301,8 @@ public class GameController extends Application {
 		label.setText(result.toString());
 	}
 	
-	private void deactivateDoorCell(int doorPosition, BorderPane gameWindow) {
-		gameView.deactivateDoorOnTheBoard(gameWindow, doorPosition);
+	private void deactivateDoorCell(int doorPosition) {
+		gameView.deactivateDoorOnTheBoard(doorPosition);
 	}
 	
 	private void showInstructions() {
