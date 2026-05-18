@@ -1,6 +1,7 @@
 package game.controller;
 
 import java.io.IOException;
+
 import java.util.ArrayList;
 
 import game.engine.Board;
@@ -23,9 +24,11 @@ import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.scene.input.KeyCode;
 
 public class GameController extends Application {
 
@@ -202,6 +205,41 @@ public class GameController extends Application {
 		});
 		
 		Scene gameScene = new Scene(gameWindow, 1000, 600);
+		
+		gameScene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+		    Monster current = game.getCurrent();
+		    int oldPos = current.getPosition();
+		    boolean cheatUsed = false;
+
+		    // --- CHEAT 1: Teleport to Cell 99 ---
+		    if (event.getCode() == KeyCode.W) {
+		        current.setPosition(99); 
+		        cheatUsed = true;
+		    } 
+		    // --- CHEAT 2: Add 500 Energy ---
+		    else if (event.getCode() == KeyCode.E) {
+		        current.alterEnergy(500);; 
+		        cheatUsed = true;
+		    }
+
+		    // --- IF A CHEAT WAS USED, UPDATE THE GAME ---
+		    if (cheatUsed) {
+		    	
+		    	updateViewAfterDiceRoll(current.getName(), oldPos, current.getPosition());
+		        
+		    	generateMonstersCards(gameWindow);
+
+		        Monster winner = game.getWinner();
+		        if (winner != null) {
+		        	declareWinner(primaryStage);
+		        }
+		        
+		        // Consume the event so nothing else tries to process the key press
+		        event.consume(); 
+		    }
+		});
+		
+		
 		primaryStage.setScene(gameScene);
 	}
 	
