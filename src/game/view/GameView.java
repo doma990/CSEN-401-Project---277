@@ -26,6 +26,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.Tooltip;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -642,26 +643,92 @@ public class GameView {
 	    HBox statusBox = new HBox(10);
 	    statusBox.setAlignment(Pos.CENTER_LEFT);
 	    
+//	    if (monster.isShielded()) {
+//	        Label shieldIcon = new Label("Shielded");
+//	        shieldIcon.setStyle("-fx-text-fill: #2980b9; -fx-font-weight: bold;");
+//	        statusBox.getChildren().add(shieldIcon);
+//	    }
+//	    if (monster.isFrozen()) {
+//	        Label freezeIcon = new Label("Frozen");
+//	        freezeIcon.setStyle("-fx-text-fill: #3498db; -fx-font-weight: bold;");
+//	        statusBox.getChildren().add(freezeIcon);
+//	    }
+//	    if (monster.isConfused()) {
+//	        Label confusedIcon = new Label("Confused");
+//	        confusedIcon.setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
+//	        statusBox.getChildren().add(confusedIcon);
+//	    }
+	    
+	    StringBuilder description = new StringBuilder("");
+
 	    if (monster.isShielded()) {
-	        Label shieldIcon = new Label("Shielded");
-	        shieldIcon.setStyle("-fx-text-fill: #2980b9; -fx-font-weight: bold;");
-	        statusBox.getChildren().add(shieldIcon);
-	    }
-	    if (monster.isFrozen()) {
-	        Label freezeIcon = new Label("Frozen");
-	        freezeIcon.setStyle("-fx-text-fill: #3498db; -fx-font-weight: bold;");
-	        statusBox.getChildren().add(freezeIcon);
-	    }
-	    if (monster.isConfused()) {
-	        Label confusedIcon = new Label("Confused");
-	        confusedIcon.setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
-	        statusBox.getChildren().add(confusedIcon);
+	    	description.append("Blocks the next negative energy loss effect to the entire team\n");
+	    	description.append("Doesn’t protect from schemer’s steal power\n");
+	        statusBox.getChildren().add(createStatusBadge("🛡️", "#2980b9", 0, description.toString())); 
 	    }
 
-	    card.getChildren().addAll(nameLabel, roleLabel, positionLabel, energyBar, energyText, statusBox);
+	    if (monster.isFrozen()) {
+	    	description.append("Freezes a monster for 1 turn, Making them skip their entire next turn.");
+	        statusBox.getChildren().add(createStatusBadge("❄️", "#3498db", 0, description.toString()));
+	    }
+
+	    int confusedTurns = monster.getConfusionTurns();
+	    if (confusedTurns > 0) {
+	    	description.append("Confused: Monster moves in the opposite direction for ");
+	    	description.append(confusedTurns + " turns.");
+	        statusBox.getChildren().add(createStatusBadge("😵", "#e74c3c", confusedTurns, description.toString()));
+	    }
+
+	    if (monster instanceof Dasher) {
+	    	int momentumTurns = ((Dasher) monster).getMomentumTurns(); // Example
+	    	if (momentumTurns > 0) {
+	    		description.append("Gain 3x movement speed for the next ");
+	    		description.append(momentumTurns + " turns.");
+	    		statusBox.getChildren().add(createStatusBadge("⚡", "#f1c40f", momentumTurns, description.toString()));
+	    	}	    	
+	    }
+	    
+	    if (monster instanceof MultiTasker) {
+	    	int normalSpeedTurns = ((MultiTasker) monster).getNormalSpeedTurns();
+	    	if (normalSpeedTurns > 0) {	    		
+	    		description.append("Move at normal speed (not halved) for the next ");
+	    		description.append(normalSpeedTurns + " turns.");
+	    		statusBox.getChildren().add(createStatusBadge("👌", "#f1c40f", normalSpeedTurns, description.toString()));
+	    	}
+	    }
+
+	    card.getChildren().addAll(nameLabel, roleLabel, positionLabel, energyBar, energyText);
+	    
+	    // Only add the statusBox to the card if there are actually active effects!
+	    if (!statusBox.getChildren().isEmpty()) {
+	        card.getChildren().add(statusBox);
+	    }
+	    
 	    return card;
 	}
 	
+	private Label createStatusBadge(String icon, String color, int duration, String description) {
+		
+	    String text = (duration > 0) ? icon + " " + duration : icon;
+	    
+	    Label badge = new Label(text);
+	    badge.setStyle(
+	        "-fx-background-color: " + color + "; " +
+	        "-fx-text-fill: white; " +
+	        "-fx-font-weight: bold; " +
+	        "-fx-padding: 3px 8px; " +
+	        "-fx-background-radius: 12px; " + // Gives it a pill/badge shape
+	        "-fx-font-size: 11px;"
+	        
+	    );
+	    
+	    Tooltip tooltip = new Tooltip(description);
+	    tooltip.setStyle("-fx-font-size: 12px; -fx-background-color: #34495e;");
+	    
+	    badge.setTooltip(tooltip);
+	    
+	    return badge;
+	}	
 	private String getMonsterType(Monster monster) {
 		String result = "";
 		if (monster instanceof Dynamo)
