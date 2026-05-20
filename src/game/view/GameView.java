@@ -378,8 +378,27 @@ public class GameView {
 //		Retrieving ImageView object for the monster using its name which was set previously as an ID
 		ImageView imageView = (ImageView) getNodeById(oldHBox, currentName);
 		
-//		Adding animation to movement
-		animateMonsterMovement(imageView, oldPosition, newPosition, oldHBox, newHBox);		
+		if (imageView == null) {
+			imageView = findMonsterImageViewOnBoard(currentName);
+		}
+		if (imageView != null) {
+			animateMonsterMovement(imageView, oldPosition, newPosition, oldHBox, newHBox);
+		}		
+	}
+	
+	private ImageView findMonsterImageViewOnBoard(String monsterId) {
+		 for (Node node : boardGrid.getChildren()) {
+			 if (node instanceof StackPane) {
+			 StackPane cell = (StackPane) node;
+			 // The last child is always the HBox with monster avatars
+			 Node last = cell.getChildren().get(cell.getChildren().size() - 1);
+			 if (last instanceof HBox) {
+				 Node found = getNodeById((HBox) last, monsterId);
+			 if (found instanceof ImageView) return (ImageView) found;
+			 }
+		 }
+		 }
+		 return null;
 	}
 	
 	public void animateMonsterMovement(ImageView realMonsterImg, int startPos, int endPos, HBox oldHBox, HBox newHBox) {

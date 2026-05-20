@@ -110,8 +110,10 @@ public class GameController extends Application {
 				    
 					if (current.isFrozen()) {
 						gameView.logAction(name + " is Frozen! Turn Skipped.");
-						displayAlert("Ahh", "Your turn was skipped as you were frozen.", "OK");
 						game.playTurn();						
+						displayAlert("Ahh", "Your turn was skipped as you were frozen.", "OK");
+						updateHeader((Label) gameWindow.getTop());
+						generateMonstersCards(gameWindow);
 						return;
 					}
 						
