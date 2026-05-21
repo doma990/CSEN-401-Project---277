@@ -119,13 +119,13 @@ public class GameController extends Application {
 	
 	private void startTheGame(Stage primaryStage) {
 		
-		BorderPane gameWindow = gameView.loadTheBoard(game.getBoard().getBoardCells(), game.getPlayer().getName(), game.getOpponent().getName());
+		gameView.loadTheBoard(game.getBoard().getBoardCells(), game.getPlayer().getName(), game.getOpponent().getName());
 		
 //		Generating left and right panels
-		generateMonstersCards(gameWindow);
+		generateMonstersCards();
 		
 //		Generating bottom panel
-		gameWindow.setBottom(gameView.generateBottomSection());
+		gameView.getGameWindow().setBottom(gameView.generateBottomSection());
 		
 		gameView.getRollDiceButton().setOnAction(new EventHandler<ActionEvent>(){
 			
@@ -146,8 +146,8 @@ public class GameController extends Application {
 						gameView.logAction(name + " is Frozen! Turn Skipped.");
 						game.playTurn();						
 						displayAlert("Ahh", "Your turn was skipped as you were frozen.", "OK");
-						updateHeader((Label) gameWindow.getTop());
-						generateMonstersCards(gameWindow);
+						updateHeader();
+						generateMonstersCards();
 						return;
 					}
 						
@@ -199,8 +199,8 @@ public class GameController extends Application {
 					if (oldPosNotCurrent != newPosNotCurrent)
 						updateViewAfterDiceRoll(notCurrent.getName(), oldPosNotCurrent, newPosNotCurrent);
 					
-					updateHeader((Label) gameWindow.getTop());
-					generateMonstersCards(gameWindow);
+					updateHeader();
+					generateMonstersCards();
 					if (newPos % 2 == 1)
 						deactivateDoorCell(newPos);
 					
@@ -227,7 +227,7 @@ public class GameController extends Application {
 				try {
 					game.usePowerup();
 					gameView.logAction(game.getCurrent().getName() + " just used their Power Up!");
-					generateMonstersCards(gameWindow);
+					generateMonstersCards();
 					
 				} catch (OutOfEnergyException e) {
 					
@@ -240,7 +240,7 @@ public class GameController extends Application {
 			
 		});
 		
-		Scene gameScene = new Scene(gameWindow, 1000, 600);
+		Scene gameScene = new Scene(gameView.getGameWindow(), 1000, 600);
 		
 		gameScene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
 		    Monster current = game.getCurrent();
@@ -263,7 +263,7 @@ public class GameController extends Application {
 		    	
 		    	updateViewAfterDiceRoll(current.getName(), oldPos, current.getPosition());
 		        
-		    	generateMonstersCards(gameWindow);
+		    	generateMonstersCards();
 
 		        Monster winner = game.getWinner();
 		        if (winner != null) {
@@ -343,7 +343,7 @@ public class GameController extends Application {
 		
 	}
 	
-	private void generateMonstersCards(BorderPane gameWindow) {
+	private void generateMonstersCards() {
 		
 		VBox playerCard = gameView.buildMonsterCard(game.getPlayer(), true);
 		VBox opponentCard = gameView.buildMonsterCard(game.getOpponent(), true);
@@ -355,8 +355,8 @@ public class GameController extends Application {
 		VBox leftPanel = gameView.constructPanel("PLAYER", playerCard, stationedMonstersCards.subList(0, 3));
 		VBox rightPanel = gameView.constructPanel("OPPONENT", opponentCard, stationedMonstersCards.subList(3, 6));
 		
-		gameWindow.setLeft(leftPanel);
-		gameWindow.setRight(rightPanel);
+		gameView.getGameWindow().setLeft(leftPanel);
+		gameView.getGameWindow().setRight(rightPanel);
 
 	}
 	
@@ -364,7 +364,7 @@ public class GameController extends Application {
 		gameView.updateBoardAfterRoll(name, oldPosition, newPosition);
 	}
 	
-	private void updateHeader(Label label) {
+	private void updateHeader() {
 		StringBuilder result = new StringBuilder("Player ");
 		String currentName = game.getCurrent().getName();
 		if (game.getPlayer().getName().equals(currentName)) {
@@ -372,7 +372,7 @@ public class GameController extends Application {
 		} else {			
 			result.append("2 Turn: ").append(currentName);
 		}
-		label.setText(result.toString());
+		gameView.getHeaderLabel().setText(result.toString());
 	}
 	
 	private void deactivateDoorCell(int doorPosition) {

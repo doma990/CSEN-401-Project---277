@@ -1,6 +1,8 @@
 package game.view;
 
+import java.util.HashMap;
 import java.util.List; 
+import java.util.Map;
 
 import game.engine.Constants;
 import game.engine.Role;
@@ -59,6 +61,7 @@ import javafx.util.Duration;
 public class GameView {
 	
 	private final int CELL_SIZE = 80;
+	private Map<String, Image> imageCache = new HashMap<>();
 	
 //	Welcome Screen Components
 	private Label gameTitle;
@@ -70,9 +73,11 @@ public class GameView {
 	private BorderPane mainMenuLayout;
 	
 //	The stack centered in the borderpane, which has the board and the diagonal transport on top of the board
+	private BorderPane gameWindow;
 	private StackPane mainBoardContainer;
 	private GridPane boardGrid;
 	private Pane overlayPane;
+	private Label headerLabel;
 	
 //	Bottom Panel Components
 //	Left HBox
@@ -263,10 +268,20 @@ public class GameView {
 	    }
 	}
 	
-	public BorderPane loadTheBoard(Cell[][] boardCells, String playerName, String opponentName) {
+
+	private Image getCachedImage(String path) {
+		
+	    if (!imageCache.containsKey(path)) {
+	    	
+	        imageCache.put(path, new Image(getClass().getResource(path).toExternalForm())); 
+	    } 
+	    return imageCache.get(path);
+	}
+	
+	public void loadTheBoard(Cell[][] boardCells, String playerName, String opponentName) {
 
 //		Root Node
-		BorderPane entireWindow = new BorderPane();
+		this.gameWindow = new BorderPane();
 //		A stack which has both the board gridpane and above it the overlay pane for diagonal extensions
 		this.mainBoardContainer = new StackPane();
 		mainBoardContainer.setMaxSize(10*CELL_SIZE, 10*CELL_SIZE);
@@ -287,9 +302,9 @@ public class GameView {
 		opponentImage.setFitHeight(35);
 		
 		playerImage.setId(playerName);
-		playerImage.setImage(new Image(getClass().getResource(returnMonsterImagePath(playerName)).toExternalForm()));
+		playerImage.setImage(getCachedImage(returnMonsterImagePath(playerName)));
 		opponentImage.setId(opponentName);
-		opponentImage.setImage(new Image(getClass().getResource(returnMonsterImagePath(opponentName)).toExternalForm()));
+		opponentImage.setImage(getCachedImage(returnMonsterImagePath(opponentName)));
 						
 		Cell currentCell;
 		for (int i = 0; i < 10; i++) {
@@ -322,13 +337,13 @@ public class GameView {
 				if (currentCell instanceof CardCell) {
 					
 					background.setFill(createTileGradient("#8E2DE2", "#4A00E0"));
-					cellIcon.setImage(new Image(getClass().getResource("/resources/card.png").toExternalForm()));
+					cellIcon.setImage(getCachedImage("/resources/card.png"));
 					
 //					Contamination Sock
 				} else if (currentCell instanceof ContaminationSock) {
 					
 					background.setFill(createTileGradient("#ff9966", "#ff5e62"));
-					Image image = new Image(getClass().getResource("/resources/transport/sock.png").toExternalForm());
+					Image image = getCachedImage("/resources/transport/sock.png");
 					cellIcon.setImage(image);
 					
 					int effect = ((ContaminationSock) currentCell).getEffect();
@@ -345,7 +360,7 @@ public class GameView {
 				} else if (currentCell instanceof ConveyorBelt) {
 					
 					background.setFill(createTileGradient("#11998e", "#38ef7d"));
-					Image image = new Image(getClass().getResource("/resources/transport/belt.png").toExternalForm());
+					Image image = getCachedImage("/resources/transport/belt.png");
 					cellIcon.setImage(image);					
 					
 					int effect = ((ConveyorBelt) currentCell).getEffect();
@@ -363,10 +378,10 @@ public class GameView {
 					
 					background.setFill(createTileGradient("#F2C94C", "#F2994A"));
 					if (((DoorCell) currentCell).getRole() == Role.SCARER) {						
-						cellIcon.setImage(new Image(getClass().getResource("/resources/door/scarer-door.png").toExternalForm()));					
+						cellIcon.setImage(getCachedImage("/resources/door/scarer-door.png"));
 						cellIcon.setId("scarerDoor");
 					} else {						
-						cellIcon.setImage(new Image(getClass().getResource("/resources/door/laugher-door.png").toExternalForm()));					
+						cellIcon.setImage(getCachedImage("/resources/door/laugher-door.png"));
 						cellIcon.setId("laugherDoor");
 					}
 					doorEnergy.setText("" + ((DoorCell) currentCell).getEnergy());
@@ -377,7 +392,7 @@ public class GameView {
 					background.setFill(createTileGradient("#00c6ff", "#0072ff"));
 					
 					String monsterCellName = ((MonsterCell) currentCell).getCellMonster().getName();
-					cellIcon.setImage(new Image(getClass().getResource(returnMonsterImagePath(monsterCellName)).toExternalForm()));
+					cellIcon.setImage(getCachedImage(returnMonsterImagePath(monsterCellName)));
 				}
 				
 //				Normal Cell
@@ -417,18 +432,24 @@ public class GameView {
 		mainBoardContainer.scaleXProperty().bind(scaleBinding);
 		mainBoardContainer.scaleYProperty().bind(scaleBinding);
 		
-		entireWindow.setCenter(centerWrapper);
+		this.gameWindow.setCenter(centerWrapper);
 		
-		Label header = new Label("Player 1 : " + playerName);
-		entireWindow.setTop(header);
-		BorderPane.setAlignment(header, Pos.CENTER);
+		this.headerLabel = new Label("Player 1 : " + playerName);
+		this.gameWindow.setTop(headerLabel);
 		
-		return entireWindow;
+		headerLabel.setPadding(new Insets(30, 0, 30, 0)); 
+		headerLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+		centerWrapper.setPadding(new Insets(10, 20, 30, 20));
+
+		StackPane.setAlignment(boardGroup, Pos.CENTER);
+		
+		BorderPane.setAlignment(headerLabel, Pos.CENTER);
 	}
 	
 	public void animateCardPopup(Card drawnCard) {
 		
-	    Image cardImage = new Image(getClass().getResource(getCardImagePath(drawnCard)).toExternalForm());
+	    Image cardImage = getCachedImage(getCardImagePath(drawnCard));
 	    ImageView cardImageView = new ImageView(cardImage);
 	    
 	    cardImageView.setFitWidth(200);
@@ -711,6 +732,20 @@ public class GameView {
 		
 	    VBox card = new VBox(8);
 	    
+	    ImageView monsterImage = new ImageView();
+	    String monsterImgPath = returnMonsterImagePath(monster.getName());
+	    monsterImage.setImage(getCachedImage(monsterImgPath));
+
+	    monsterImage.setFitWidth(120);
+	    monsterImage.setFitHeight(120);
+	    monsterImage.setPreserveRatio(true);
+
+	    DropShadow dropShadow = new DropShadow();
+	    dropShadow.setRadius(8.0);
+	    dropShadow.setOffsetY(3.0);
+	    dropShadow.setColor(Color.color(0, 0, 0, 0.4));
+	    monsterImage.setEffect(dropShadow);
+	    
 	    card.setPadding(new Insets(10));
 	    card.setStyle(
 	        "-fx-background-color: white; " +
@@ -742,22 +777,6 @@ public class GameView {
 
 	    HBox statusBox = new HBox(10);
 	    statusBox.setAlignment(Pos.CENTER_LEFT);
-	    
-//	    if (monster.isShielded()) {
-//	        Label shieldIcon = new Label("Shielded");
-//	        shieldIcon.setStyle("-fx-text-fill: #2980b9; -fx-font-weight: bold;");
-//	        statusBox.getChildren().add(shieldIcon);
-//	    }
-//	    if (monster.isFrozen()) {
-//	        Label freezeIcon = new Label("Frozen");
-//	        freezeIcon.setStyle("-fx-text-fill: #3498db; -fx-font-weight: bold;");
-//	        statusBox.getChildren().add(freezeIcon);
-//	    }
-//	    if (monster.isConfused()) {
-//	        Label confusedIcon = new Label("Confused");
-//	        confusedIcon.setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
-//	        statusBox.getChildren().add(confusedIcon);
-//	    }
 	    
 	    StringBuilder description = new StringBuilder("");
 
@@ -797,7 +816,7 @@ public class GameView {
 	    	}
 	    }
 
-	    card.getChildren().addAll(nameLabel, roleLabel, positionLabel, energyBar, energyText);
+	    card.getChildren().addAll(monsterImage, nameLabel, roleLabel, positionLabel, energyBar, energyText);
 	    
 	    // Only add the statusBox to the card if there are actually active effects!
 	    if (!statusBox.getChildren().isEmpty()) {
@@ -1001,6 +1020,14 @@ public class GameView {
 	
 	public ImageCursor getImageCursor() {
 		return imageCursor;
+	}
+	
+	public BorderPane getGameWindow() {
+		return gameWindow;
+	}
+	
+	public Label getHeaderLabel() {
+		return headerLabel;
 	}
 }
 
