@@ -18,8 +18,11 @@ import game.engine.monsters.MultiTasker;
 import game.engine.monsters.Schemer;
 import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.DoubleBinding;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Group;
 import javafx.scene.ImageCursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -394,7 +397,27 @@ public class GameView {
 		}
 		
 		mainBoardContainer.getChildren().addAll(boardGrid, overlayPane);
-		entireWindow.setCenter(mainBoardContainer);
+		
+		double boardBaseSize = 10 * CELL_SIZE;
+		mainBoardContainer.setMinSize(boardBaseSize, boardBaseSize);
+		mainBoardContainer.setPrefSize(boardBaseSize, boardBaseSize);
+		mainBoardContainer.setMaxSize(boardBaseSize, boardBaseSize);
+
+		Group boardGroup = new Group(mainBoardContainer);
+		
+		StackPane centerWrapper = new StackPane(boardGroup);
+		
+		centerWrapper.setMinSize(0, 0); 
+		
+		DoubleBinding scaleBinding = (DoubleBinding) Bindings.min(
+			centerWrapper.widthProperty().divide(boardBaseSize),
+			centerWrapper.heightProperty().divide(boardBaseSize)
+		);
+		
+		mainBoardContainer.scaleXProperty().bind(scaleBinding);
+		mainBoardContainer.scaleYProperty().bind(scaleBinding);
+		
+		entireWindow.setCenter(centerWrapper);
 		
 		Label header = new Label("Player 1 : " + playerName);
 		entireWindow.setTop(header);
