@@ -1,7 +1,6 @@
 package game.controller;
 
 import java.io.IOException;
-
 import java.util.ArrayList;
 
 import game.engine.Board;
@@ -26,7 +25,10 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import javafx.stage.Stage;
 import javafx.scene.input.KeyCode;
 
@@ -36,13 +38,23 @@ public class GameController extends Application {
 	private GameView gameView;
 	
 	public void start(Stage primaryStage) throws Exception {
-		gameView = new GameView();
-		BorderPane root = gameView.placeUIComponents();
 		
+		gameView = new GameView();
+		
+		StackPane root = gameView.placeUIComponents();
+		
+		String audioPath = getClass().getResource("/resources/audio/monsters-inc-theme.mp3").toExternalForm();
+		Media media = new Media(audioPath);
+	    MediaPlayer startAudio = new MediaPlayer(media);
+	    
+	     startAudio.setCycleCount(MediaPlayer.INDEFINITE); 
+	     startAudio.play();
+	     
 		gameView.getScarerButton().setOnAction(new EventHandler<ActionEvent>() {
 			
 			public void handle(ActionEvent event) {
 				try {
+					startAudio.stop();
 					game = new Game(Role.SCARER);
 					startTheGame(primaryStage);
 				} catch (IOException e) {
@@ -57,6 +69,7 @@ public class GameController extends Application {
 			
 			public void handle(ActionEvent event) {
 				try {
+					startAudio.stop();
 					game = new Game(Role.LAUGHER);
 					startTheGame(primaryStage);
 				} catch (IOException e) {
@@ -77,7 +90,28 @@ public class GameController extends Application {
 			
 		});
 		
+		final boolean[] isMuted = {false};
+
+	    gameView.getMuteButton().setOnAction(e -> {
+	    	
+	        isMuted[0] = !isMuted[0];
+	        
+	        startAudio.setMute(isMuted[0]); 
+	        
+	        if (isMuted[0]) {
+	        	
+	            gameView.changeMuteButtonIcon("/resources/unmute-icon.png");
+	            
+	        } else {
+	        	
+	            gameView.changeMuteButtonIcon("/resources/mute-icon.png");
+	            
+	        }
+	        
+	    });
+	    
 		Scene scene = new Scene(root, 1000, 600);
+		scene.setCursor(gameView.getImageCursor());
 		primaryStage.setTitle("DooRDasH - Start Clocking In");
 		primaryStage.setScene(scene);
 		primaryStage.show();

@@ -17,8 +17,10 @@ import game.engine.monsters.Monster;
 import game.engine.monsters.MultiTasker;
 import game.engine.monsters.Schemer;
 import javafx.animation.FadeTransition;
+import javafx.animation.ScaleTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.ImageCursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -60,6 +62,8 @@ public class GameView {
 	private Button scarerButton;
 	private Button laugherButton;
 	private Button instructionsButton;
+	private Button muteButton;
+	private ImageCursor imageCursor;
 	private BorderPane mainMenuLayout;
 	
 //	The stack centered in the borderpane, which has the board and the diagonal transport on top of the board
@@ -97,10 +101,33 @@ public class GameView {
 		gameTitle.setStyle(
 			    "-fx-font-family: 'Impact'; " + 
 			    "-fx-font-size: 60px; " + 
-			    "-fx-text-fill: #9ACD32; " + // YellowGreen
-			    "-fx-stroke: #2E8B57; " + // SeaGreen outline effect
+			    "-fx-text-fill: #9ACD32; " +
+			    "-fx-stroke: #2E8B57; " +
 			    "-fx-stroke-width: 2px;"
 		);
+		
+		ScaleTransition titleZoomIn = new ScaleTransition(Duration.millis(200), gameTitle);
+		titleZoomIn.setToX(1.15);
+		titleZoomIn.setToY(1.15);
+
+		ScaleTransition titleZoomOut = new ScaleTransition(Duration.millis(200), gameTitle);
+		titleZoomOut.setToX(1.0);
+		titleZoomOut.setToY(1.0);
+
+		DropShadow titleGlow = new DropShadow();
+		titleGlow.setColor(Color.web("#ff4000")); // 66ff66
+		titleGlow.setRadius(25);
+		titleGlow.setSpread(0.5);
+
+		gameTitle.setOnMouseEntered(e -> {
+		    titleZoomIn.playFromStart();
+		    gameTitle.setEffect(titleGlow);
+		});
+
+		gameTitle.setOnMouseExited(e -> {
+		    titleZoomOut.playFromStart();
+		    gameTitle.setEffect(null); 
+		});
 		
 		DropShadow dropShadow = new DropShadow();
 		dropShadow.setRadius(5.0);
@@ -110,39 +137,131 @@ public class GameView {
 		gameTitle.setEffect(dropShadow);
 		
 		gameTitle.setPadding(new Insets(200,0,0,0));
+		
+		Image cursorImage = new Image(getClass().getResource("/resources/cursor-icon.png").toExternalForm());
+		this.imageCursor = new ImageCursor(cursorImage);
 	}
 	
-	public BorderPane placeUIComponents() {
-		this.mainMenuLayout = new BorderPane();
-		String imagePath = getClass().getResource("/resources/Welcome-Screen.jpeg").toExternalForm();
-		Image bgImg = new Image(imagePath); 
-		BackgroundImage background = new BackgroundImage(
-				bgImg, 
-				BackgroundRepeat.NO_REPEAT,
-				BackgroundRepeat.NO_REPEAT, 
-				BackgroundPosition.CENTER,
-				new BackgroundSize(100, 100, true, true, false, true)
-		);
-		
-		mainMenuLayout.setBackground(new Background(background));
-		
-//		A containter for "Play as Laugher" , "Play as scarer" , and "Instructions" buttons
-		VBox allButtons = new VBox(30);
-		allButtons.setAlignment(Pos.CENTER);
-		
-//		A container for Scarer and Laugher buttons
-		HBox scarerAndLaugherButtons = new HBox(30);
-		scarerAndLaugherButtons.setAlignment(Pos.CENTER);
-		
-		scarerAndLaugherButtons.getChildren().addAll(scarerButton, laugherButton);
-		allButtons.getChildren().addAll(scarerAndLaugherButtons, instructionsButton);
-		
-		mainMenuLayout.setTop(gameTitle);
-		mainMenuLayout.setCenter(allButtons);
-		
-		BorderPane.setAlignment(gameTitle, Pos.CENTER);
+	public StackPane placeUIComponents() {
+	    StackPane rootPane = new StackPane();
+	    GridPane muteButtonLayout = new GridPane();
+	    this.mainMenuLayout = new BorderPane();
+	    
+	    String imagePath = getClass().getResource("/resources/Welcome-Screen.jpeg").toExternalForm();
+	    ImageView bgImageView = new ImageView(new Image(imagePath));
+	    
+	    bgImageView.fitWidthProperty().bind(rootPane.widthProperty());
+	    bgImageView.fitHeightProperty().bind(rootPane.heightProperty());
+	    bgImageView.setPreserveRatio(false);
 
-		return mainMenuLayout;
+	    FadeTransition bgTransition = new FadeTransition(Duration.seconds(6), bgImageView);
+	    bgTransition.setFromValue(0.5);
+	    bgTransition.setToValue(1.0);
+	    bgTransition.setAutoReverse(false);
+	    bgTransition.play();
+	    
+	    bgImageView.setScaleX(1.05);
+	    bgImageView.setScaleY(1.05);
+
+	    rootPane.setOnMouseMoved(event -> {
+	    	
+	        double windowWidth = rootPane.getWidth();
+	        double windowHeight = rootPane.getHeight();
+	        
+	        double centerX = windowWidth / 2;
+	        double centerY = windowHeight / 2;
+	        
+	        double mouseX = event.getX();
+	        double mouseY = event.getY();
+	        
+	        double intensity = 0.05; 
+	        
+	        double shiftX = (centerX - mouseX) * intensity;
+	        double shiftY = (centerY - mouseY) * intensity;
+	        
+	        bgImageView.setTranslateX(shiftX);
+	        bgImageView.setTranslateY(shiftY);
+	        
+	    });
+	    
+	    muteButton = new Button();
+	    try {
+	    	
+	        ImageView muteIcon = new ImageView(new Image(getClass().getResourceAsStream("/resources/mute-icon.png")));
+	        muteIcon.setFitWidth(30);
+	        muteIcon.setFitHeight(30);
+	        muteButton.setGraphic(muteIcon);
+	        
+	    } catch (Exception e) {
+	    	
+	        muteButton.setText("Mute");
+	        
+	    }
+	    
+	    muteButton.setStyle("-fx-background-color: white; -fx-cursor: hand;");
+	    addHoverAnimation(muteButton);
+
+	    StackPane.setAlignment(muteButton, Pos.TOP_RIGHT);
+	    StackPane.setMargin(muteButton, new Insets(20));
+	    
+	    VBox allButtons = new VBox(30);
+	    allButtons.setAlignment(Pos.CENTER);
+	    HBox scarerAndLaugherButtons = new HBox(30);
+	    scarerAndLaugherButtons.setAlignment(Pos.CENTER);
+	    
+	    addHoverAnimation(scarerButton);
+	    addHoverAnimation(laugherButton);
+	    addHoverAnimation(instructionsButton);
+
+	    scarerAndLaugherButtons.getChildren().addAll(scarerButton, laugherButton);
+	    allButtons.getChildren().addAll(scarerAndLaugherButtons, instructionsButton);
+	    
+	    mainMenuLayout.setTop(gameTitle);
+	    mainMenuLayout.setCenter(allButtons);
+	    BorderPane.setAlignment(gameTitle, Pos.CENTER);
+	    
+	    muteButtonLayout.add(getMuteButton(), 0, 0);
+	    muteButtonLayout.setAlignment(Pos.TOP_LEFT);
+
+	    rootPane.getChildren().addAll(bgImageView, mainMenuLayout, muteButton);
+	    
+	    return rootPane;
+	}
+
+	private void addHoverAnimation(Button btn) {
+	    ScaleTransition scaleIn = new ScaleTransition(Duration.millis(150), btn);
+	    scaleIn.setToX(1.1);
+	    scaleIn.setToY(1.1);
+
+	    ScaleTransition scaleOut = new ScaleTransition(Duration.millis(150), btn);
+	    scaleOut.setToX(1.0);
+	    scaleOut.setToY(1.0);
+
+	    btn.setOnMouseEntered(e -> {
+	        scaleIn.playFromStart();
+	        btn.setEffect(new DropShadow(15, Color.WHITE)); 
+	    });
+	    
+	    btn.setOnMouseExited(e -> {
+	        scaleOut.playFromStart();
+	        btn.setEffect(null); 
+	    });
+	}
+	
+	public void changeMuteButtonIcon(String path) {
+		
+	    try {
+	    	
+	        ImageView muteIcon = new ImageView(new Image(getClass().getResourceAsStream(path)));
+	        muteIcon.setFitWidth(30);
+	        muteIcon.setFitHeight(30);
+	        muteButton.setGraphic(muteIcon);
+	        
+	    } catch (Exception e) {
+	    	
+	        this.muteButton.setText("Mute");
+	        
+	    }
 	}
 	
 	public BorderPane loadTheBoard(Cell[][] boardCells, String playerName, String opponentName) {
@@ -403,51 +522,6 @@ public class GameView {
 	
 	public void animateMonsterMovement(ImageView realMonsterImg, int startPos, int endPos, HBox oldHBox, HBox newHBox) {
 		
-//	    oldHBox.getChildren().remove(realMonsterImg);
-//
-//	    ImageView ghost = new ImageView(realMonsterImg.getImage());
-//	    ghost.setFitWidth(35);
-//	    ghost.setFitHeight(35);
-//	    
-//	    // Center the ghost image on its X/Y coordinates
-//	    ghost.setTranslateX(-17.5); 
-//	    ghost.setTranslateY(-17.5);
-//	    
-//	    overlayPane.getChildren().add(ghost);
-//
-////	    Building the path
-//	    Path path = new Path();
-//	    double[] startCoords = getPixelsFromIndex(startPos);
-//	    path.getElements().add(new MoveTo(startCoords[0], startCoords[1]));
-//
-////	    Determine if we are moving forward or backward
-//	    int step = (startPos < endPos) ? 1 : -1;
-//	    int currentPos = startPos;
-//	    
-//	    while (currentPos != endPos) {
-//	        currentPos += step;
-//	        double[] nextCoords = getPixelsFromIndex(currentPos);
-//	        path.getElements().add(new LineTo(nextCoords[0], nextCoords[1]));
-//	    }
-//
-//	    PathTransition pathTransition = new PathTransition();
-//	    pathTransition.setNode(ghost);
-//	    pathTransition.setPath(path);
-//	    
-//	    int cellsMoved = Math.abs(endPos - startPos);
-//	    pathTransition.setDuration(Duration.millis(300 * cellsMoved));
-//
-//	    pathTransition.setOnFinished(event -> {
-//	    	
-//	        overlayPane.getChildren().remove(ghost);
-//	        
-//	        newHBox.getChildren().add(realMonsterImg);
-//	        
-//	        getRollDiceButton().setDisable(false);
-//	        
-//	    });
-//
-//	    pathTransition.play();
 		oldHBox.getChildren().remove(realMonsterImg);
 
 	    FadeTransition fadeOut = new FadeTransition(Duration.millis(200), realMonsterImg);
@@ -901,6 +975,14 @@ public class GameView {
 	
 	public BorderPane getMainMenuLayout() {
 		return mainMenuLayout;
+	}
+	
+	public Button getMuteButton() {
+		return muteButton;
+	}
+	
+	public ImageCursor getImageCursor() {
+		return imageCursor;
 	}
 }
 
