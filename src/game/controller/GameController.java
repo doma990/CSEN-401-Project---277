@@ -383,6 +383,7 @@ public class GameController extends Application {
 		VBox instructionsPopup = gameView.generateInstructionsPopup();
 		
 		Scene popupScene = new Scene(instructionsPopup);
+		popupScene.setCursor(gameView.getImageCursor());
 		Stage popupStage = new Stage();
 		popupStage.setScene(popupScene);
 		

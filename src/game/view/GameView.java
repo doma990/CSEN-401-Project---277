@@ -144,7 +144,6 @@ public class GameView {
 	
 	public StackPane placeUIComponents() {
 	    StackPane rootPane = new StackPane();
-	    GridPane muteButtonLayout = new GridPane();
 	    this.mainMenuLayout = new BorderPane();
 	    
 	    String imagePath = getClass().getResource("/resources/Welcome-Screen.jpeg").toExternalForm();
@@ -198,7 +197,7 @@ public class GameView {
 	        
 	    }
 	    
-	    muteButton.setStyle("-fx-background-color: white; -fx-cursor: hand;");
+	    muteButton.setStyle("-fx-background-color: white;");
 	    addHoverAnimation(muteButton);
 
 	    StackPane.setAlignment(muteButton, Pos.TOP_RIGHT);
@@ -220,9 +219,6 @@ public class GameView {
 	    mainMenuLayout.setCenter(allButtons);
 	    BorderPane.setAlignment(gameTitle, Pos.CENTER);
 	    
-	    muteButtonLayout.add(getMuteButton(), 0, 0);
-	    muteButtonLayout.setAlignment(Pos.TOP_LEFT);
-
 	    rootPane.getChildren().addAll(bgImageView, mainMenuLayout, muteButton);
 	    
 	    return rootPane;
@@ -273,7 +269,6 @@ public class GameView {
 		mainBoardContainer.setMaxSize(10*CELL_SIZE, 10*CELL_SIZE);
 //		GridPane to hold the board's cells
 		this.boardGrid = new GridPane();
-//		board.setGridLinesVisible(true);
 //		Pane to hold diagonal extensions of contamination sock and conveyor belt above the board grid
 		this.overlayPane = new Pane();
 		overlayPane.setMouseTransparent(true);
