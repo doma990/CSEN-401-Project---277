@@ -140,8 +140,7 @@ public class GameController extends Application {
 				int oldEnergy = current.getEnergy();
 				Role oldRole = current.getRole();
 				
-				try {			
-				    
+				try {
 					if (current.isFrozen()) {
 						gameView.logAction(name + " is Frozen! Turn Skipped.");
 						game.playTurn();						
@@ -153,65 +152,101 @@ public class GameController extends Application {
 						
 					game.playTurn();
 
-			        int dice = game.getLastDiceRoll();
-			        
-			        int newPos = current.getPosition();
-			        
-			        int[] newPosRowAndCol = gameView.indexToRowCol(newPos);
-			        Cell newCell = game.getBoard().getBoardCells()[newPosRowAndCol[0]][newPosRowAndCol[1]];
-			        if (newCell instanceof CardCell)
-			        	drawCardFromBoard(current, notCurrent);
-			        
-			        newPos = current.getPosition();
-			        int newPosNotCurrent = notCurrent.getPosition();
-			        int newEnergy = current.getEnergy();
-			        Role newRole = current.getRole();
-			        
-			        gameView.logAction(name + " rolled a " + dice + ".");
-			        
-//				        Transport Cell
-			        int posBeforeTransportInCaseATransport = oldPos + dice;
-			        int[] rowColBeforeTransportInCaseATransport = gameView.indexToRowCol(posBeforeTransportInCaseATransport);
-			        Cell cellBeforeTransportInCaseATransport = game.getBoard().getBoardCells()[rowColBeforeTransportInCaseATransport[0]][rowColBeforeTransportInCaseATransport[1]];
-			        if (cellBeforeTransportInCaseATransport instanceof ContaminationSock || cellBeforeTransportInCaseATransport instanceof ConveyorBelt) {
-			        	gameView.logAction(name + " was transported to cell " + newPos + "!");
-			        }
-			        
-			        gameView.getDiceLabel().setText("Dice: " + dice);
+					int dice = game.getLastDiceRoll();
+					
+					int landedPos = Board.landedPos;
+					int[] landedRowCol = gameView.indexToRowCol(landedPos);
+					
+					Cell tempCell = null;
+					if (landedRowCol[0] < 10 
+							&& landedRowCol[1] < 10 
+							&& landedRowCol[0] >= 0 
+							&& landedRowCol[1] >= 0) {
+						tempCell = game.getBoard().getBoardCells()[landedRowCol[0]][landedRowCol[1]];
+					}
+					
+					final Cell landedCell = tempCell;
 
-			        gameView.logAction(name + " landed on a " + getCellName(newPos) + ".");
-			        
-//				        Energy Changes
-			        if (newEnergy > oldEnergy) {
-			            gameView.logAction(name + " gained " + (newEnergy - oldEnergy) + " energy.");
-			        } else if (newEnergy < oldEnergy) {
-			            gameView.logAction(name + " lost " + (oldEnergy - newEnergy) + " energy.");
-			        }
+					// =========================================================================
+					// THE RUNNABLE: This block holds ALL UI updates and logging.
+					// We store it here so we can delay it if an animation needs to play!
+					// =========================================================================
+					Runnable completeTurnUpdates = () -> {
+						
+						int newPos = current.getPosition();
+						int newPosNotCurrent = notCurrent.getPosition();
+						int newEnergy = current.getEnergy();
+						Role newRole = current.getRole();
+						
+						gameView.logAction(name + " rolled a " + dice + ".");
+						
+						// Transport Cell
+						if (landedCell instanceof ContaminationSock || landedCell instanceof ConveyorBelt) {
+							gameView.logAction(name + " was transported to cell " + newPos + "!");
+						}
+						
+						gameView.getDiceLabel().setText("Dice: " + dice);
+						gameView.logAction(name + " landed on a " + getCellName(newPos) + ".");
+						
+						// Energy Changes
+						if (newEnergy > oldEnergy) {
+							gameView.logAction(name + " gained " + (newEnergy - oldEnergy) + " energy.");
+						} else if (newEnergy < oldEnergy) {
+							gameView.logAction(name + " lost " + (oldEnergy - newEnergy) + " energy.");
+						}
 
-//				        Role Swap
-			        if (oldRole != newRole) {
-			            gameView.logAction(name + "'s role was swapped to " + newRole + "!");
-			        }
+						// Role Swap
+						if (oldRole != newRole) {
+							gameView.logAction(name + "'s role was swapped to " + newRole + "!");
+						}
 
-			        // updating the entire gamewindow
-					updateViewAfterDiceRoll(current.getName(), oldPos, newPos);
-					
-					if (oldPosNotCurrent != newPosNotCurrent)
-						updateViewAfterDiceRoll(notCurrent.getName(), oldPosNotCurrent, newPosNotCurrent);
-					
-					updateHeader();
-					generateMonstersCards();
-					if (newPos % 2 == 1)
-						deactivateDoorCell(newPos);
-					
-					if (newPosNotCurrent % 2 == 1)
-						deactivateDoorCell(newPosNotCurrent);
-					
-					if (game.getWinner() != null) {
-						declareWinner(primaryStage);
-					}		
-				}
-				 catch (InvalidMoveException e) {
+						// Update the entire game window
+						gameView.updateBoardAfterRoll(current.getName(), oldPos, newPos);
+						
+						if (oldPosNotCurrent != newPosNotCurrent)
+							gameView.updateBoardAfterRoll(notCurrent.getName(), oldPosNotCurrent, newPosNotCurrent);
+						
+						updateHeader();
+						generateMonstersCards();
+						
+						if (landedCell instanceof DoorCell) {
+							deactivateDoorCell(landedPos);
+						}
+						
+						if (game.getWinner() != null) {
+							declareWinner(primaryStage);
+						}	
+					};
+
+					// =========================================================================
+					// EXECUTION: Decide whether to animate first, or just run the updates
+					// =========================================================================
+					if (landedCell instanceof CardCell) {
+						
+						Card drawnCard = Board.drawCard();	
+						int cardsRemaining = Board.getCards().size();
+						
+						// Disable the dice button so the game is not broken by clicking during the animation
+						gameView.getRollDiceButton().setDisable(true);
+						
+						// Trigger the animation, and pass the updates to run WHEN FINISHED
+						gameView.animateCardDraw(drawnCard, cardsRemaining, () -> {
+							
+//							To be done once animation is over
+							drawnCard.performAction(current, notCurrent);
+							
+							gameView.updateCardVBox(drawnCard);
+							completeTurnUpdates.run();
+							
+							gameView.getRollDiceButton().setDisable(false);
+						});
+						
+					} else {
+						// Not a card cell? Just execute the UI updates immediately.
+						completeTurnUpdates.run();
+					}
+
+				} catch (InvalidMoveException e) {
 					gameView.logAction(name + " couldn't move: " + e.getMessage());
 					displayAlert("Invalid Move", "Unable to move to this position, try again.", "Try Again");
 				}
@@ -240,7 +275,7 @@ public class GameController extends Application {
 			
 		});
 		
-		Scene gameScene = new Scene(gameView.getGameWindow(), 1000, 600);
+		Scene gameScene = new Scene(gameView.getRootContainer(), 1000, 700);
 		
 		gameScene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
 		    Monster current = game.getCurrent();
@@ -261,7 +296,7 @@ public class GameController extends Application {
 		    // --- IF A CHEAT WAS USED, UPDATE THE GAME ---
 		    if (cheatUsed) {
 		    	
-		    	updateViewAfterDiceRoll(current.getName(), oldPos, current.getPosition());
+		    	gameView.updateBoardAfterRoll(current.getName(), oldPos, current.getPosition());
 		        
 		    	generateMonstersCards();
 
@@ -307,15 +342,6 @@ public class GameController extends Application {
 		
 	}
 	
-	private void drawCardFromBoard(Monster current, Monster notCurrent) {
-		
-		Card card = Board.drawCard();
-		card.performAction(current, notCurrent);
-		gameView.animateCardPopup(card);
-		gameView.updateCardVBox(card);
-		
-	}
-	
 	private String getCellName(int pos) {
 		String result = "";
 		Cell[][] boardCells = game.getBoard().getBoardCells();
@@ -358,10 +384,6 @@ public class GameController extends Application {
 		gameView.getGameWindow().setLeft(leftPanel);
 		gameView.getGameWindow().setRight(rightPanel);
 
-	}
-	
-	private void updateViewAfterDiceRoll(String name, int oldPosition, int newPosition) {
-		gameView.updateBoardAfterRoll(name, oldPosition, newPosition);
 	}
 	
 	private void updateHeader() {

@@ -19,7 +19,12 @@ import game.engine.monsters.Monster;
 import game.engine.monsters.MultiTasker;
 import game.engine.monsters.Schemer;
 import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
+import javafx.animation.PathTransition;
+import javafx.animation.PauseTransition;
 import javafx.animation.ScaleTransition;
+import javafx.animation.SequentialTransition;
+import javafx.animation.TranslateTransition;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.DoubleBinding;
 import javafx.geometry.Insets;
@@ -54,6 +59,9 @@ import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.shape.Line;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
@@ -73,7 +81,9 @@ public class GameView {
 	private BorderPane mainMenuLayout;
 	
 //	The stack centered in the borderpane, which has the board and the diagonal transport on top of the board
+	private StackPane rootContainer;
 	private BorderPane gameWindow;
+	private Pane cardPileLayer;
 	private StackPane mainBoardContainer;
 	private GridPane boardGrid;
 	private Pane overlayPane;
@@ -146,7 +156,7 @@ public class GameView {
 		
 		gameTitle.setPadding(new Insets(200,0,0,0));
 		
-		Image cursorImage = new Image(getClass().getResource("/resources/cursor-icon.png").toExternalForm());
+		Image cursorImage = getCachedImage("/resources/cursor-icon.png");
 		this.imageCursor = new ImageCursor(cursorImage);
 	}
 	
@@ -154,8 +164,7 @@ public class GameView {
 	    StackPane rootPane = new StackPane();
 	    this.mainMenuLayout = new BorderPane();
 	    
-	    String imagePath = getClass().getResource("/resources/Welcome-Screen.jpeg").toExternalForm();
-	    ImageView bgImageView = new ImageView(new Image(imagePath));
+	    ImageView bgImageView = new ImageView(getCachedImage("/resources/Welcome-Screen.jpeg"));
 	    
 	    bgImageView.fitWidthProperty().bind(rootPane.widthProperty());
 	    bgImageView.fitHeightProperty().bind(rootPane.heightProperty());
@@ -194,7 +203,7 @@ public class GameView {
 	    muteButton = new Button();
 	    try {
 	    	
-	        ImageView muteIcon = new ImageView(new Image(getClass().getResourceAsStream("/resources/mute-icon.png")));
+	        ImageView muteIcon = new ImageView(getCachedImage("/resources/mute-icon.png"));
 	        muteIcon.setFitWidth(30);
 	        muteIcon.setFitHeight(30);
 	        muteButton.setGraphic(muteIcon);
@@ -256,7 +265,7 @@ public class GameView {
 		
 	    try {
 	    	
-	        ImageView muteIcon = new ImageView(new Image(getClass().getResourceAsStream(path)));
+	        ImageView muteIcon = new ImageView(getCachedImage(path));
 	        muteIcon.setFitWidth(30);
 	        muteIcon.setFitHeight(30);
 	        muteButton.setGraphic(muteIcon);
@@ -281,7 +290,14 @@ public class GameView {
 	public void loadTheBoard(Cell[][] boardCells, String playerName, String opponentName) {
 
 //		Root Node
+		this.rootContainer = new StackPane();
+		rootContainer.setStyle("-fx-background-color: #2c3e50;");
+		
 		this.gameWindow = new BorderPane();
+		this.gameWindow.setStyle("-fx-background-color: white;");
+		
+		this.cardPileLayer = new Pane();
+		
 //		A stack which has both the board gridpane and above it the overlay pane for diagonal extensions
 		this.mainBoardContainer = new StackPane();
 		mainBoardContainer.setMaxSize(10*CELL_SIZE, 10*CELL_SIZE);
@@ -337,7 +353,7 @@ public class GameView {
 				if (currentCell instanceof CardCell) {
 					
 					background.setFill(createTileGradient("#8E2DE2", "#4A00E0"));
-					cellIcon.setImage(getCachedImage("/resources/card.png"));
+					cellIcon.setImage(getCachedImage("/resources/cards/card.png"));
 					
 //					Contamination Sock
 				} else if (currentCell instanceof ContaminationSock) {
@@ -445,42 +461,100 @@ public class GameView {
 		StackPane.setAlignment(boardGroup, Pos.CENTER);
 		
 		BorderPane.setAlignment(headerLabel, Pos.CENTER);
+		
+		rootContainer.getChildren().addAll(cardPileLayer, gameWindow);
 	}
 	
-	public void animateCardPopup(Card drawnCard) {
+	public void animateCardDraw(Card card, int remainingCards, Runnable onFinished) {
+		String cardImagePath = getCardImagePath(card);
 		
-	    Image cardImage = getCachedImage(getCardImagePath(drawnCard));
-	    ImageView cardImageView = new ImageView(cardImage);
+	    BorderPane mainWindow = this.getGameWindow();
+	    Pane pileLayer = this.getCardPileLayer();
+	    pileLayer.getChildren().clear(); // Not sure about this line
 	    
-	    cardImageView.setFitWidth(200);
-	    cardImageView.setFitHeight(300);
+	    int visualCardsCount = (remainingCards > 18) ? 5 : (remainingCards > 9) ? 3 : 1;
 	    
-	    DropShadow shadow = new DropShadow();
-	    shadow.setRadius(15);
-	    shadow.setOffsetX(5);
-	    shadow.setOffsetY(5);
-	    cardImageView.setEffect(shadow);
-
-	    mainBoardContainer.getChildren().add(cardImageView);
-
-//	    Fade transition
-	    FadeTransition fadeOut = new FadeTransition(Duration.millis(1500), cardImageView);
-	    fadeOut.setFromValue(1.0);
-	    fadeOut.setToValue(0.0);
-	    fadeOut.setDelay(Duration.millis(3000)); 
+	    StackPane deckVisual = new StackPane();
+	    deckVisual.setLayoutX(400);
+	    deckVisual.setLayoutY(50);
 	    
-	    fadeOut.setOnFinished(event -> mainBoardContainer.getChildren().remove(cardImageView));
+	    Image cardBackImg = getCachedImage("/resources/cards/card-back.png");
+	    
+	    for (int i = 0; i < visualCardsCount; i++) {
+	    	
+	        ImageView stackedCard = new ImageView(cardBackImg);
+	        stackedCard.setFitWidth(150);
+	        stackedCard.setFitHeight(220);
+	        
+	        // Offset each card slightly to look like a pile
+	        stackedCard.setTranslateX(i * -2); 
+	        stackedCard.setTranslateY(i * -2);
+	        deckVisual.getChildren().add(stackedCard);
+	    }
+	    pileLayer.getChildren().add(deckVisual);
 
-	    fadeOut.play();
+	    ImageView drawnCard = new ImageView(cardBackImg);
+	    drawnCard.setFitWidth(200);
+	    drawnCard.setPreserveRatio(true);;
+	    deckVisual.getChildren().add(drawnCard);
+
+	    // A. Slide the main window down by 350 pixels
+	    TranslateTransition slideDown = new TranslateTransition(Duration.seconds(0.8), mainWindow);
+	    slideDown.setToY(350);
+	    slideDown.setInterpolator(Interpolator.EASE_OUT);
+	    
+	    // B. Move the drawn card up and out of the pile
+	    TranslateTransition pullCard = new TranslateTransition(Duration.seconds(0.5), drawnCard);
+	    pullCard.setByY(-50);
+	    pullCard.setByX(200);
+	    
+	    // C. The Flip Trick (Scale X from 1 to 0, swap image, Scale X from 0 to 1)
+	    ScaleTransition flipPart1 = new ScaleTransition(Duration.millis(250), drawnCard);
+	    flipPart1.setToX(0);
+	    flipPart1.setOnFinished(e -> drawnCard.setImage(getCachedImage(cardImagePath)));
+	    
+	    ScaleTransition flipPart2 = new ScaleTransition(Duration.millis(250), drawnCard);
+	    flipPart2.setToX(1);
+	    
+	    // D. Pause so the player can read the card
+	    PauseTransition readingPause = new PauseTransition(Duration.seconds(2));
+	    
+	    // E. Fade the card out
+	    FadeTransition fadeCard = new FadeTransition(Duration.millis(400), drawnCard);
+	    fadeCard.setToValue(0);
+	    
+	    // F. Slide the main window back up
+	    TranslateTransition slideUp = new TranslateTransition(Duration.seconds(0.8), mainWindow);
+	    slideUp.setToY(0);
+	    slideUp.setInterpolator(Interpolator.EASE_IN);
+
+	    // --- CHAIN THEM TOGETHER ---
+	    SequentialTransition fullSequence = new SequentialTransition(
+	        slideDown,
+	        pullCard,
+	        flipPart1,
+	        flipPart2,
+	        readingPause,
+	        fadeCard,
+	        slideUp
+	    );
+	    
+	    // When everything is done, trigger the game logic to continue!
+	    fullSequence.setOnFinished(e -> {
+	        pileLayer.getChildren().clear();
+	        if (onFinished != null) onFinished.run();
+	    });
+	    
+	    fullSequence.play();
 	}
 	
 	private String getCardImagePath(Card card) {
+		if (card instanceof SwapperCard) return "/resources/cards/swap.png";
 	    if (card instanceof ShieldCard) return "/resources/cards/shield.png";
-	    if (card instanceof SwapperCard) return "/resources/cards/swap.png";
 	    if (card instanceof StartOverCard) return "/resources/cards/start-over.png";
 	    if (card instanceof ConfusionCard) return "/resources/cards/confusion.png";
 	    if (card instanceof EnergyStealCard) return "/resources/cards/steal.png";
-	    return "/resources/card.png";
+	    return "/resources/cards/card.png";
 	}
 	
 	public void updateCardVBox(Card card) {
@@ -560,26 +634,67 @@ public class GameView {
 	}
 	
 	public void animateMonsterMovement(ImageView realMonsterImg, int startPos, int endPos, HBox oldHBox, HBox newHBox) {
-		
-		oldHBox.getChildren().remove(realMonsterImg);
+	    
+	    oldHBox.getChildren().remove(realMonsterImg);
 
-	    FadeTransition fadeOut = new FadeTransition(Duration.millis(200), realMonsterImg);
-	    fadeOut.setFromValue(1.0);
-	    fadeOut.setToValue(0.0);
+	    ImageView ghostImg = new ImageView(realMonsterImg.getImage());
+	    ghostImg.setFitWidth(realMonsterImg.getFitWidth());
+	    ghostImg.setFitHeight(realMonsterImg.getFitHeight());
 
-	    fadeOut.setOnFinished(event -> {
+	    this.overlayPane.getChildren().add(ghostImg);
+
+	    Path path = new Path();
+
+	    double halfCell = CELL_SIZE / 2.0;
+
+	    int[] startRc = indexToRowColRespectingGridPane(startPos); 
+	    double startX = (startRc[1] * CELL_SIZE) + halfCell;
+	    double startY = (startRc[0] * CELL_SIZE) + halfCell;
+	    
+	    path.getElements().add(new MoveTo(startX, startY));
+
+	    int distance = Math.abs(startPos - endPos);
+	    int step = (startPos < endPos) ? 1 : -1; // Works for moving forward AND backward!
+
+	    // If the movement is 6 or less, it's a dice roll. Walk step-by-step to follow the zigzag.
+	    if (distance <= 6) {
+	        for (int i = startPos + step; i != endPos + step; i += step) {
+	            int[] rc = indexToRowColRespectingGridPane(i);
+	            double px = (rc[1] * CELL_SIZE) + halfCell;
+	            double py = (rc[0] * CELL_SIZE) + halfCell;
+	            path.getElements().add(new LineTo(px, py));
+	        }
+	    }
+	    
+	    // If distance > 6, it's a Transport Cell or a Cheat. Draw a direct diagonal line.
+	    else {
+	        int[] endRc = indexToRowColRespectingGridPane(endPos);
+	        double px = (endRc[1] * CELL_SIZE) + halfCell;
+	        double py = (endRc[0] * CELL_SIZE) + halfCell;
+	        path.getElements().add(new LineTo(px, py));
+	    }
+
+	    // --- 5. Configure the Path Transition ---
+	    PathTransition pathTransition = new PathTransition();
+	    
+	    // Calculate duration: 300ms per cell moved for dice rolls, or a flat 1 second for massive transports
+	    double durationMs = (distance <= 6) ? (distance * 300) : 1000; 
+	    pathTransition.setDuration(Duration.millis(durationMs));
+	    
+	    pathTransition.setPath(path);
+	    pathTransition.setNode(ghostImg);
+
+	    // --- 6. On Finish: Clean up and drop the real monster ---
+	    pathTransition.setOnFinished(event -> {
+	        // Remove the ghost from the overlay
+	        this.overlayPane.getChildren().remove(ghostImg);
+	        // Put the real image back into the grid layout safely
 	        newHBox.getChildren().add(realMonsterImg);
-
-	        FadeTransition fadeIn = new FadeTransition(Duration.millis(200), realMonsterImg);
-	        fadeIn.setFromValue(0.0);
-	        fadeIn.setToValue(1.0);
-
-	        fadeIn.play();
 	    });
 
-	    fadeOut.play();
-	}
-		
+	    // --- 7. Play! ---
+	    pathTransition.play();
+	}		
 	private Node getNodeById(Pane parentNode, String id) {
 	    for (Node node : parentNode.getChildren()) {
 	        if (id.equals(node.getId())) {
@@ -623,7 +738,7 @@ public class GameView {
 	    Label lName = new Label("Runner-up: " + loser.getName());
 	    Label lEnergy = new Label("Final Energy: " + loser.getEnergy());
 	    lName.setStyle("-fx-font-size: 24px; -fx-text-fill: #e74c3c; -fx-font-weight: bold;");
-	    lEnergy.setStyle("-fx-font-size: 20px; -fx-text-fill: #bdc3c7;"); // Muted grey
+	    lEnergy.setStyle("-fx-font-size: 20px; -fx-text-fill: #bdc3c7;");
 	    loserStats.getChildren().addAll(lName, lEnergy);
 
 	    statsBox.getChildren().addAll(winnerStats, loserStats);
@@ -756,8 +871,11 @@ public class GameView {
 	    );
 
 	    Label nameLabel = new Label(monster.getName() + " (" + getMonsterType(monster) + ")");
+	    
 	    nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: " + (isMainPlayer ? "16px;" : "12px;"));
 	    nameLabel.setWrapText(true);
+	    nameLabel.setMaxWidth(isMainPlayer ? 180 : 130);
+	    nameLabel.setMinHeight(Region.USE_PREF_SIZE);
 	    
 	    Label roleLabel = new Label("Role: " + monster.getRole());
 	    
@@ -785,19 +903,25 @@ public class GameView {
 	    	description.append("Doesn’t protect from schemer’s steal power\n");
 	        statusBox.getChildren().add(createStatusBadge("🛡️", "#2980b9", 0, description.toString())); 
 	    }
+	    
+	    description.setLength(0);
 
 	    if (monster.isFrozen()) {
 	    	description.append("Freezes a monster for 1 turn, Making them skip their entire next turn.");
 	        statusBox.getChildren().add(createStatusBadge("❄️", "#3498db", 0, description.toString()));
 	    }
 
+	    description.setLength(0);
+	    
 	    int confusedTurns = monster.getConfusionTurns();
 	    if (confusedTurns > 0) {
-	    	description.append("Confused: Monster moves in the opposite direction for ");
+	    	description.append("Confused: Monster swap roles for ");
 	    	description.append(confusedTurns + " turns.");
 	        statusBox.getChildren().add(createStatusBadge("😵", "#e74c3c", confusedTurns, description.toString()));
 	    }
 
+	    description.setLength(0);
+	    
 	    if (monster instanceof Dasher) {
 	    	int momentumTurns = ((Dasher) monster).getMomentumTurns(); // Example
 	    	if (momentumTurns > 0) {
@@ -806,6 +930,8 @@ public class GameView {
 	    		statusBox.getChildren().add(createStatusBadge("⚡", "#f1c40f", momentumTurns, description.toString()));
 	    	}	    	
 	    }
+	    
+	    description.setLength(0);
 	    
 	    if (monster instanceof MultiTasker) {
 	    	int normalSpeedTurns = ((MultiTasker) monster).getNormalSpeedTurns();
@@ -873,12 +999,12 @@ public class GameView {
 		if (getNodeById(doorCellStack, "deactivated") == null) {			
 			if (scarerDoor != null) {
 				String path = "/resources/door/black-door-open.png";
-				scarerDoor.setImage(new Image(getClass().getResource(path).toExternalForm()));
+				scarerDoor.setImage(getCachedImage(path));
 				scarerDoor.setId("deactivated");
 			}
 			else if (laugherDoor != null) {
 				String path = "/resources/door/blue-open-door.png";
-				laugherDoor.setImage(new Image(getClass().getResource(path).toExternalForm()));
+				laugherDoor.setImage(getCachedImage(path));
 				laugherDoor.setId("deactivated");
 			}
 		}
@@ -890,6 +1016,7 @@ public class GameView {
 	    bottomPanel.setAlignment(Pos.CENTER);
 	    bottomPanel.setPadding(new Insets(15));
 	    bottomPanel.setStyle("-fx-background-color: #ecf0f1; -fx-border-color: #bdc3c7; -fx-border-width: 2 0 0 0;");
+	    bottomPanel.setMinWidth(0.0);
 
 	    // Left Section : Buttons
 	    VBox leftSection = new VBox(10);
@@ -904,6 +1031,8 @@ public class GameView {
 	    diceRollLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
 	    
 	    leftSection.getChildren().addAll(rollDiceButton, usePowerupButton, diceRollLabel);
+	    
+	    leftSection.setMinWidth(Region.USE_PREF_SIZE);
 
 //	    Middle Section : Text area to log actions done
 	    this.actionLog = new TextArea();
@@ -911,6 +1040,10 @@ public class GameView {
 	    actionLog.setWrapText(true);
 	    actionLog.setPrefHeight(100);
 	    actionLog.setStyle("-fx-control-inner-background: #2c3e50; -fx-text-fill: #ecf0f1; -fx-font-family: 'Consolas';");
+	    actionLog.setMinWidth(0.0);
+	    
+	    actionLog.setMinWidth(0.0);
+		actionLog.setPrefWidth(10.0);
 	    
 	    HBox.setHgrow(actionLog, Priority.ALWAYS);
 
@@ -919,6 +1052,9 @@ public class GameView {
 	    cardViewer.setAlignment(Pos.CENTER);
 	    cardViewer.setPrefWidth(200);
 	    cardViewer.setStyle("-fx-background-color: white; -fx-border-color: #e74c3c; -fx-border-radius: 5px; -fx-border-width: 2px; -fx-padding: 10px;");
+	    
+	    cardViewer.setMinWidth(Region.USE_PREF_SIZE);
+		cardViewer.setMaxWidth(Region.USE_PREF_SIZE);
 	    
 	    Label cardHeader = new Label("Last Card Drawn");
 	    cardHeader.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 12px;");
@@ -1028,6 +1164,14 @@ public class GameView {
 	
 	public Label getHeaderLabel() {
 		return headerLabel;
+	}
+	
+	public StackPane getRootContainer() {
+		return rootContainer;
+	}
+	
+	public Pane getCardPileLayer() {
+		return cardPileLayer;
 	}
 }
 
