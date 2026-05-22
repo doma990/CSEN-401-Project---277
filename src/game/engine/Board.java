@@ -14,6 +14,7 @@ public class Board {
 	private static ArrayList<Card> originalCards;
 	public static ArrayList<Card> cards;
 	public static int landedPos;
+	public static Card drawnCard;
 	
 	public Board(ArrayList<Card> readCards) {
 		this.boardCells = new Cell[Constants.BOARD_ROWS][Constants.BOARD_COLS];
@@ -122,7 +123,8 @@ public class Board {
 		if (cards.isEmpty()) 
 			reloadCards();
 		
-		return cards.remove(0);
+		Board.drawnCard = cards.remove(0);
+		return Board.drawnCard;
 	}
 
 	public void moveMonster(Monster currentMonster, int roll, Monster opponentMonster) throws InvalidMoveException {

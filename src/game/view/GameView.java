@@ -58,6 +58,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
+import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
@@ -594,7 +595,7 @@ public class GameView {
 		return indexToRowCol(endIndex);
 	}
 	
-	public void updateBoardAfterRoll(String currentName, int oldPosition, int newPosition) {
+	public void updateBoardAfterRoll(String currentName, int oldPosition, int landedPosition, int newPosition, Runnable onFinished) {
 //		Calculating indices of start and end positions
 		int[] startRowAndCol = indexToRowColRespectingGridPane(oldPosition);
 		int[] endRowAndCol = indexToRowColRespectingGridPane(newPosition);
@@ -614,8 +615,10 @@ public class GameView {
 			imageView = findMonsterImageViewOnBoard(currentName);
 		}
 		if (imageView != null) {
-			animateMonsterMovement(imageView, oldPosition, newPosition, oldHBox, newHBox);
-		}		
+			animateMonsterMovement(imageView, oldPosition, landedPosition, newPosition, oldHBox, newHBox, onFinished);
+		} else {
+			if (onFinished != null) onFinished.run();		
+		}
 	}
 	
 	private ImageView findMonsterImageViewOnBoard(String monsterId) {
@@ -633,7 +636,7 @@ public class GameView {
 		 return null;
 	}
 	
-	public void animateMonsterMovement(ImageView realMonsterImg, int startPos, int endPos, HBox oldHBox, HBox newHBox) {
+	public void animateMonsterMovement(ImageView realMonsterImg, int startPos, int landedPos, int endPos, HBox oldHBox, HBox newHBox, Runnable onFinished) {
 	    
 	    oldHBox.getChildren().remove(realMonsterImg);
 
@@ -652,49 +655,54 @@ public class GameView {
 	    double startY = (startRc[0] * CELL_SIZE) + halfCell;
 	    
 	    path.getElements().add(new MoveTo(startX, startY));
-
-	    int distance = Math.abs(startPos - endPos);
-	    int step = (startPos < endPos) ? 1 : -1; // Works for moving forward AND backward!
-
-	    // If the movement is 6 or less, it's a dice roll. Walk step-by-step to follow the zigzag.
-	    if (distance <= 6) {
-	        for (int i = startPos + step; i != endPos + step; i += step) {
-	            int[] rc = indexToRowColRespectingGridPane(i);
-	            double px = (rc[1] * CELL_SIZE) + halfCell;
-	            double py = (rc[0] * CELL_SIZE) + halfCell;
-	            path.getElements().add(new LineTo(px, py));
-	        }
-	    }
 	    
-	    // If distance > 6, it's a Transport Cell or a Cheat. Draw a direct diagonal line.
-	    else {
-	        int[] endRc = indexToRowColRespectingGridPane(endPos);
-	        double px = (endRc[1] * CELL_SIZE) + halfCell;
-	        double py = (endRc[0] * CELL_SIZE) + halfCell;
-	        path.getElements().add(new LineTo(px, py));
-	    }
+	    int walkDistance = Math.abs(startPos - landedPos);
+		if (walkDistance > 0) {
+			
+			int step = (startPos < landedPos) ? 1 : -1; 
+			
+			// Draw a line to every single cell along the way
+			for (int i = startPos + step; i != landedPos + step; i += step) {
+				int[] rc = indexToRowColRespectingGridPane(i);
+				double px = (rc[1] * CELL_SIZE) + halfCell;
+				double py = (rc[0] * CELL_SIZE) + halfCell;
+				path.getElements().add(new LineTo(px, py));
+			}
+		}
 
-	    // --- 5. Configure the Path Transition ---
-	    PathTransition pathTransition = new PathTransition();
-	    
-	    // Calculate duration: 300ms per cell moved for dice rolls, or a flat 1 second for massive transports
-	    double durationMs = (distance <= 6) ? (distance * 300) : 1000; 
-	    pathTransition.setDuration(Duration.millis(durationMs));
-	    
-	    pathTransition.setPath(path);
-	    pathTransition.setNode(ghostImg);
+		// --- Phase 2: Diagonal Slide (If a Transport Cell was used) ---
+		boolean usedTransport = (landedPos != endPos);
+		if (usedTransport) {
+			int[] endRc = indexToRowColRespectingGridPane(endPos);
+			double px = (endRc[1] * CELL_SIZE) + halfCell;
+			double py = (endRc[0] * CELL_SIZE) + halfCell;
+			path.getElements().add(new LineTo(px, py));
+		}
 
-	    // --- 6. On Finish: Clean up and drop the real monster ---
-	    pathTransition.setOnFinished(event -> {
-	        // Remove the ghost from the overlay
-	        this.overlayPane.getChildren().remove(ghostImg);
-	        // Put the real image back into the grid layout safely
-	        newHBox.getChildren().add(realMonsterImg);
-	    });
+		// --- Configure Timing and Play ---
+		PathTransition pathTransition = new PathTransition();
+		
+		// 300ms per footstep, plus 800ms if they take a transport diagonal
+		double durationMs = (walkDistance * 300) + (usedTransport ? 800 : 0);
+		
+		// Cap the duration at 2.5 seconds so Cheats (like W to cell 99) don't take forever
+		if (durationMs > 2500) durationMs = 2500;
+		
+		pathTransition.setDuration(Duration.millis(durationMs));
+		pathTransition.setPath(path);
+		pathTransition.setNode(ghostImg);
 
-	    // --- 7. Play! ---
-	    pathTransition.play();
-	}		
+		pathTransition.setOnFinished(event -> {
+			this.overlayPane.getChildren().remove(ghostImg);
+			newHBox.getChildren().add(realMonsterImg);
+			
+			// CRITICAL: Trigger the next phase of the game!
+			if (onFinished != null) onFinished.run(); 
+			
+		});
+		pathTransition.play();
+	}
+
 	private Node getNodeById(Pane parentNode, String id) {
 	    for (Node node : parentNode.getChildren()) {
 	        if (id.equals(node.getId())) {
@@ -745,6 +753,7 @@ public class GameView {
 
 	    this.backButton = new Button("Return to Main Menu");
 	    backButton.setStyle("-fx-font-size: 20px; -fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 15px 30px;");
+	    addHoverAnimation(backButton);
 
 	    root.getChildren().addAll(titleLabel, roleLabel, statsBox, backButton);
 
@@ -901,14 +910,14 @@ public class GameView {
 	    if (monster.isShielded()) {
 	    	description.append("Blocks the next negative energy loss effect to the entire team\n");
 	    	description.append("Doesn’t protect from schemer’s steal power\n");
-	        statusBox.getChildren().add(createStatusBadge("🛡️", "#2980b9", 0, description.toString())); 
+	        statusBox.getChildren().add(createStatusBadge("/resources/icons/shield.png", "#2980b9", 0, description.toString())); 
 	    }
 	    
 	    description.setLength(0);
 
 	    if (monster.isFrozen()) {
 	    	description.append("Freezes a monster for 1 turn, Making them skip their entire next turn.");
-	        statusBox.getChildren().add(createStatusBadge("❄️", "#3498db", 0, description.toString()));
+	        statusBox.getChildren().add(createStatusBadge("/resources/icons/freeze.png", "#3498db", 0, description.toString()));
 	    }
 
 	    description.setLength(0);
@@ -917,7 +926,7 @@ public class GameView {
 	    if (confusedTurns > 0) {
 	    	description.append("Confused: Monster swap roles for ");
 	    	description.append(confusedTurns + " turns.");
-	        statusBox.getChildren().add(createStatusBadge("😵", "#e74c3c", confusedTurns, description.toString()));
+	        statusBox.getChildren().add(createStatusBadge("/resources/icons/confused.png", "#e74c3c", confusedTurns, description.toString()));
 	    }
 
 	    description.setLength(0);
@@ -927,7 +936,7 @@ public class GameView {
 	    	if (momentumTurns > 0) {
 	    		description.append("Gain 3x movement speed for the next ");
 	    		description.append(momentumTurns + " turns.");
-	    		statusBox.getChildren().add(createStatusBadge("⚡", "#f1c40f", momentumTurns, description.toString()));
+	    		statusBox.getChildren().add(createStatusBadge("/resources/icons/lightning.png", "#f1c40f", momentumTurns, description.toString()));
 	    	}	    	
 	    }
 	    
@@ -938,7 +947,7 @@ public class GameView {
 	    	if (normalSpeedTurns > 0) {	    		
 	    		description.append("Move at normal speed (not halved) for the next ");
 	    		description.append(normalSpeedTurns + " turns.");
-	    		statusBox.getChildren().add(createStatusBadge("👌", "#f1c40f", normalSpeedTurns, description.toString()));
+	    		statusBox.getChildren().add(createStatusBadge("/resources/icons/focus.png", "#f1c40f", normalSpeedTurns, description.toString()));
 	    	}
 	    }
 
@@ -951,29 +960,41 @@ public class GameView {
 	    
 	    return card;
 	}
-	
-	private Label createStatusBadge(String icon, String color, int duration, String description) {
 		
-	    String text = (duration > 0) ? icon + " " + duration : icon;
-	    
-	    Label badge = new Label(text);
-	    badge.setStyle(
-	        "-fx-background-color: " + color + "; " +
-	        "-fx-text-fill: white; " +
-	        "-fx-font-weight: bold; " +
-	        "-fx-padding: 3px 8px; " +
-	        "-fx-background-radius: 12px; " + // Gives it a pill/badge shape
-	        "-fx-font-size: 11px;"
-	        
-	    );
-	    
-	    Tooltip tooltip = new Tooltip(description);
-	    tooltip.setStyle("-fx-font-size: 12px; -fx-background-color: #34495e;");
-	    
-	    badge.setTooltip(tooltip);
-	    
-	    return badge;
-	}	
+	public StackPane createStatusBadge(String imagePath, String colorHex, int turns, String tooltipText) {
+		StackPane badge = new StackPane();
+		
+		ImageView icon = new ImageView(getCachedImage(imagePath));
+		icon.setFitWidth(18);
+		icon.setFitHeight(18);
+		icon.setPreserveRatio(true);
+		
+		Circle background = new Circle(14);
+		background.setFill(Color.web(colorHex));
+		
+		Tooltip tooltip = new Tooltip(tooltipText);
+		tooltip.setStyle("-fx-font-size: 12px;");
+		Tooltip.install(badge, tooltip);
+		
+		if (turns > 0) {
+			
+			Label turnLabel = new Label(String.valueOf(turns));
+			turnLabel.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: white; " +
+			                   "-fx-background-color: black; -fx-background-radius: 5px; -fx-padding: 1 3 1 3;");
+			
+			badge.getChildren().addAll(background, icon, turnLabel);
+			StackPane.setAlignment(turnLabel, Pos.BOTTOM_RIGHT);
+			
+			turnLabel.setTranslateX(5);
+			turnLabel.setTranslateY(5);
+		} else {
+			
+			badge.getChildren().addAll(background, icon);
+		}
+		
+		return badge;
+	}
+	
 	private String getMonsterType(Monster monster) {
 		String result = "";
 		if (monster instanceof Dynamo)

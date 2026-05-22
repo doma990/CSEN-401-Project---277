@@ -157,6 +157,9 @@ public class GameController extends Application {
 					int landedPos = Board.landedPos;
 					int[] landedRowCol = gameView.indexToRowCol(landedPos);
 					
+					int finalPos = current.getPosition();
+					int[] landedRowColFinal = gameView.indexToRowCol(finalPos);
+					
 					Cell tempCell = null;
 					if (landedRowCol[0] < 10 
 							&& landedRowCol[1] < 10 
@@ -166,11 +169,48 @@ public class GameController extends Application {
 					}
 					
 					final Cell landedCell = tempCell;
+					
+					if (landedRowColFinal[0] < 10 
+							&& landedRowColFinal[1] < 10 
+							&& landedRowColFinal[0] >= 0 
+							&& landedRowColFinal[1] >= 0) {
+						tempCell = game.getBoard().getBoardCells()[landedRowColFinal[0]][landedRowColFinal[1]];
+					}
+					
+					final Cell landedCellFinal = tempCell;
 
 					// =========================================================================
 					// THE RUNNABLE: This block holds ALL UI updates and logging.
 					// We store it here so we can delay it if an animation needs to play!
 					// =========================================================================
+					Runnable finalUpdates = () -> {
+						updateHeader();
+						generateMonstersCards();
+						
+						if (landedCell instanceof DoorCell) {
+							
+							deactivateDoorCell(landedPos);
+							
+						} else if (landedCellFinal instanceof DoorCell) {
+							
+							deactivateDoorCell(finalPos);
+						}
+						
+						if (game.getWinner() != null) {
+							declareWinner(primaryStage);
+						}
+						
+					};
+
+					Runnable moveOpponent = () -> {
+						if (oldPosNotCurrent != notCurrent.getPosition()) {
+							gameView.updateBoardAfterRoll(notCurrent.getName(), oldPosNotCurrent, oldPosNotCurrent, notCurrent.getPosition(), finalUpdates);
+						} else {
+							// If opponent didn't move, skip straight to final updates
+							finalUpdates.run(); 
+						}
+					};
+					
 					Runnable completeTurnUpdates = () -> {
 						
 						int newPos = current.getPosition();
@@ -180,7 +220,6 @@ public class GameController extends Application {
 						
 						gameView.logAction(name + " rolled a " + dice + ".");
 						
-						// Transport Cell
 						if (landedCell instanceof ContaminationSock || landedCell instanceof ConveyorBelt) {
 							gameView.logAction(name + " was transported to cell " + newPos + "!");
 						}
@@ -188,42 +227,21 @@ public class GameController extends Application {
 						gameView.getDiceLabel().setText("Dice: " + dice);
 						gameView.logAction(name + " landed on a " + getCellName(newPos) + ".");
 						
-						// Energy Changes
-						if (newEnergy > oldEnergy) {
-							gameView.logAction(name + " gained " + (newEnergy - oldEnergy) + " energy.");
-						} else if (newEnergy < oldEnergy) {
-							gameView.logAction(name + " lost " + (oldEnergy - newEnergy) + " energy.");
-						}
+						if (newEnergy > oldEnergy) gameView.logAction(name + " gained " + (newEnergy - oldEnergy) + " energy.");
+						else if (newEnergy < oldEnergy) gameView.logAction(name + " lost " + (oldEnergy - newEnergy) + " energy.");
 
-						// Role Swap
-						if (oldRole != newRole) {
-							gameView.logAction(name + "'s role was swapped to " + newRole + "!");
-						}
+						if (oldRole != newRole) gameView.logAction(name + "'s role was swapped to " + newRole + "!");
 
-						// Update the entire game window
-						gameView.updateBoardAfterRoll(current.getName(), oldPos, newPos);
-						
-						if (oldPosNotCurrent != newPosNotCurrent)
-							gameView.updateBoardAfterRoll(notCurrent.getName(), oldPosNotCurrent, newPosNotCurrent);
-						
-						updateHeader();
-						generateMonstersCards();
-						
-						if (landedCell instanceof DoorCell) {
-							deactivateDoorCell(landedPos);
-						}
-						
-						if (game.getWinner() != null) {
-							declareWinner(primaryStage);
-						}	
+						// Start the animation chain! (Current -> Opponent -> Final Updates)
+						gameView.updateBoardAfterRoll(current.getName(), oldPos, landedPos, newPos, moveOpponent);
 					};
-
+					
 					// =========================================================================
 					// EXECUTION: Decide whether to animate first, or just run the updates
 					// =========================================================================
-					if (landedCell instanceof CardCell) {
+					if (landedCell instanceof CardCell || landedCellFinal instanceof CardCell) {
 						
-						Card drawnCard = Board.drawCard();	
+						Card drawnCard = Board.drawnCard;	
 						int cardsRemaining = Board.getCards().size();
 						
 						// Disable the dice button so the game is not broken by clicking during the animation
@@ -231,10 +249,7 @@ public class GameController extends Application {
 						
 						// Trigger the animation, and pass the updates to run WHEN FINISHED
 						gameView.animateCardDraw(drawnCard, cardsRemaining, () -> {
-							
-//							To be done once animation is over
-							drawnCard.performAction(current, notCurrent);
-							
+														
 							gameView.updateCardVBox(drawnCard);
 							completeTurnUpdates.run();
 							
@@ -296,7 +311,7 @@ public class GameController extends Application {
 		    // --- IF A CHEAT WAS USED, UPDATE THE GAME ---
 		    if (cheatUsed) {
 		    	
-		    	gameView.updateBoardAfterRoll(current.getName(), oldPos, current.getPosition());
+		    	gameView.updateBoardAfterRoll(current.getName(), oldPos, current.getPosition(), current.getPosition(), () -> {});
 		        
 		    	generateMonstersCards();
 
